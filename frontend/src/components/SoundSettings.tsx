@@ -1,0 +1,237 @@
+// filepath: d:\Documents\KULIAH\Semester4\Netlab\project\src\components\SoundSettings.tsx
+import React, { useState } from 'react';
+import { ArrowLeft, Volume2, VolumeX, Music, Zap } from 'lucide-react';
+
+interface SoundSettingsProps {
+  soundEnabled: boolean;
+  musicVolume: number;
+  sfxVolume: number;
+  onSave: (enabled: boolean, music: number, sfx: number) => void;
+  onBack: () => void;
+}
+
+const SoundSettings: React.FC<SoundSettingsProps> = ({
+  soundEnabled,
+  musicVolume,
+  sfxVolume,
+  onSave,
+  onBack
+}) => {
+  const [localSoundEnabled, setLocalSoundEnabled] = useState(soundEnabled);
+  const [localMusicVolume, setLocalMusicVolume] = useState(musicVolume);
+  const [localSfxVolume, setLocalSfxVolume] = useState(sfxVolume);
+
+  const handleSave = () => {
+    onSave(localSoundEnabled, localMusicVolume, localSfxVolume);
+    onBack();
+  };
+
+  const testSound = (type: 'music' | 'sfx') => {
+    if (!localSoundEnabled) return;
+
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    if (type === 'music') {
+      // Play a musical chord progression
+      oscillator.frequency.setValueAtTime(261.63, audioContext.currentTime); // C4
+      oscillator.frequency.setValueAtTime(329.63, audioContext.currentTime + 0.2); // E4
+      oscillator.frequency.setValueAtTime(392.00, audioContext.currentTime + 0.4); // G4
+      gainNode.gain.setValueAtTime(localMusicVolume * 0.1, audioContext.currentTime);
+    } else {
+      // Play a sound effect
+      oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(880, audioContext.currentTime + 0.1);
+      gainNode.gain.setValueAtTime(localSfxVolume * 0.1, audioContext.currentTime);
+    }
+
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.6);
+
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.6);
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Animated background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-purple-900/50 via-blue-900/30 to-black"></div>
+      
+      {/* Audio visualizer effect */}
+      <div className="absolute inset-0 pointer-events-none">
+        {Array.from({ length: 12 }).map((_, i) => (
+          <div
+            key={i}
+            className="absolute bottom-0 bg-gradient-to-t from-cyan-400/30 to-transparent animate-pulse"
+            style={{
+              left: `${10 + i * 7}%`,
+              width: '3px',
+              height: `${20 + Math.sin(i) * 15}%`,
+              animationDelay: `${i * 0.1}s`,
+              animationDuration: `${1 + Math.random()}s`
+            }}
+          ></div>
+        ))}
+      </div>
+
+      <div className="relative z-10 w-full max-w-md">
+        {/* Back button */}
+        <button
+          onClick={onBack}
+          className="flex items-center gap-2 text-gray-300 hover:text-cyan-400 mb-8 transition-colors duration-300"
+        >
+          <ArrowLeft className="w-5 h-5" />
+          <span>Back to Home</span>
+        </button>
+
+        {/* Settings panel */}
+        <div className="bg-black/70 backdrop-blur-lg rounded-2xl border border-cyan-500/30 p-8 shadow-2xl">
+          <div className="text-center mb-8">
+            <div className="flex items-center justify-center mb-4">
+              <div className="relative">
+                <Zap className="w-10 h-10 text-cyan-400 animate-pulse" />
+                <Volume2 className="w-6 h-6 text-purple-400 absolute -bottom-1 -right-1" />
+              </div>
+            </div>
+            <h2 className="text-3xl font-bold text-white mb-2">Sound Settings</h2>
+            <p className="text-gray-400">Customize your audio experience</p>
+          </div>
+
+          <div className="space-y-8">
+            {/* Master Sound Toggle */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {localSoundEnabled ? (
+                  <Volume2 className="w-6 h-6 text-cyan-400" />
+                ) : (
+                  <VolumeX className="w-6 h-6 text-gray-400" />
+                )}
+                <span className="text-white font-semibold">Sound Enabled</span>
+              </div>
+              <button
+                onClick={() => setLocalSoundEnabled(!localSoundEnabled)}
+                className={`relative w-14 h-8 rounded-full transition-colors duration-300 ${
+                  localSoundEnabled 
+                    ? 'bg-gradient-to-r from-cyan-600 to-purple-600' 
+                    : 'bg-gray-600'
+                }`}
+              >
+                <div
+                  className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-lg transition-transform duration-300 ${
+                    localSoundEnabled ? 'translate-x-7' : 'translate-x-1'
+                  }`}
+                ></div>
+              </button>
+            </div>
+
+            {/* Music Volume */}
+            <div className={`space-y-4 ${!localSoundEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Music className="w-6 h-6 text-purple-400" />
+                  <span className="text-white font-semibold">Music Volume</span>
+                </div>
+                <button
+                  onClick={() => testSound('music')}
+                  className="px-3 py-1 bg-purple-600/30 text-purple-300 rounded text-sm hover:bg-purple-600/50 transition-colors"
+                >
+                  Test
+                </button>
+              </div>
+              
+              <div className="relative">
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.1"
+                  value={localMusicVolume}
+                  onChange={(e) => setLocalMusicVolume(parseFloat(e.target.value))}
+                  className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+                />
+                <div className="flex justify-between text-xs text-gray-400 mt-2">
+                  <span>0%</span>
+                  <span className="text-purple-400 font-semibold">
+                    {Math.round(localMusicVolume * 100)}%
+                  </span>
+                  <span>100%</span>
+                </div>
+              </div>
+            </div>
+
+            {/* SFX Volume */}
+            <div className={`space-y-4 ${!localSoundEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Zap className="w-6 h-6 text-cyan-400" />
+                  <span className="text-white font-semibold">Sound Effects</span>
+                </div>
+                <button
+                  onClick={() => testSound('sfx')}
+                  className="px-3 py-1 bg-cyan-600/30 text-cyan-300 rounded text-sm hover:bg-cyan-600/50 transition-colors"
+                >
+                  Test
+                </button>
+              </div>
+              
+              <div className="relative">
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.1"
+                  value={localSfxVolume}
+                  onChange={(e) => setLocalSfxVolume(parseFloat(e.target.value))}
+                  className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+                />
+                <div className="flex justify-between text-xs text-gray-400 mt-2">
+                  <span>0%</span>
+                  <span className="text-cyan-400 font-semibold">
+                    {Math.round(localSfxVolume * 100)}%
+                  </span>
+                  <span>100%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Save Button */}
+          <button
+            onClick={handleSave}
+            className="w-full mt-8 bg-gradient-to-r from-cyan-600 to-purple-600 text-white font-bold py-3 rounded-lg hover:shadow-lg hover:shadow-cyan-400/30 transition-all duration-300 transform hover:scale-105"
+          >
+            Save Settings
+          </button>
+        </div>
+      </div>
+
+      <style jsx>{`
+        .slider::-webkit-slider-thumb {
+          appearance: none;
+          height: 20px;
+          width: 20px;
+          border-radius: 50%;
+          background: linear-gradient(45deg, #00f5ff, #8000ff);
+          border: 2px solid white;
+          cursor: pointer;
+          box-shadow: 0 0 10px rgba(0, 245, 255, 0.5);
+        }
+
+        .slider::-moz-range-thumb {
+          height: 20px;
+          width: 20px;
+          border-radius: 50%;
+          background: linear-gradient(45deg, #00f5ff, #8000ff);
+          border: 2px solid white;
+          cursor: pointer;
+          box-shadow: 0 0 10px rgba(0, 245, 255, 0.5);
+        }
+      `}</style>
+    </div>
+  );
+};
+
+export default SoundSettings;
