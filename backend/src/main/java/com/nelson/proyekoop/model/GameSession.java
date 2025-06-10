@@ -24,29 +24,13 @@ public class GameSession {
     @Column(name = "played_at")
     private LocalDateTime playedAt;
 
-    @Column(name = "distance_traveled")
-    private Integer distanceTraveled;
-
-    @OneToMany(mappedBy = "gameSession", cascade = CascadeType.ALL, orphanRemoval = true)
-    private java.util.List<GameSessionPowerUp> powerUps;
-
     public GameSession() {
     }
 
-    public GameSession(User user, Integer score, Integer coinsCollected, java.util.List<GameSessionPowerUp> powerUps) {
+    public GameSession(User user, Integer score, Integer coinsCollected) {
         this.user = user;
         this.score = score;
         this.coinsCollected = coinsCollected;
-        this.powerUps = powerUps;
-        this.playedAt = LocalDateTime.now();
-    }
-
-    public GameSession(User user, Integer score, Integer coinsCollected, Integer distanceTraveled, java.util.List<GameSessionPowerUp> powerUps) {
-        this.user = user;
-        this.score = score;
-        this.coinsCollected = coinsCollected;
-        this.distanceTraveled = distanceTraveled;
-        this.powerUps = powerUps;
         this.playedAt = LocalDateTime.now();
     }
 
@@ -88,21 +72,5 @@ public class GameSession {
 
     public void setPlayedAt(LocalDateTime playedAt) {
         this.playedAt = playedAt;
-    }
-
-    public java.util.List<GameSessionPowerUp> getPowerUps() {
-        return powerUps;
-    }
-
-    public void setPowerUps(java.util.List<GameSessionPowerUp> powerUps) {
-        this.powerUps = powerUps;
-    }
-
-    public Integer getDistanceTraveled() {
-        return distanceTraveled;
-    }
-
-    public void setDistanceTraveled(Integer distanceTraveled) {
-        this.distanceTraveled = distanceTraveled;
     }
 }

@@ -1,78 +1,35 @@
 // filepath: d:\Documents\KULIAH\Semester4\Netlab\project\src\components\GameScreen.tsx
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { ArrowLeft, Pause, Play, RotateCcw } from 'lucide-react';
-import { User } from '../App';
+import { Pause, Play } from 'lucide-react';
 import { submitGameSession } from '../utils/api';
+import { Howl } from 'howler';
 import cityBg from '../assets/city/background.svg';
 import obstacleJumpImg from '../assets/obsctacle/jump.png';
 import obstacleDuckImg from '../assets/obsctacle/duck.png';
-import { Howl, Howler } from 'howler';
 import playMusicSrc from '../assets/sounds/play.mp3';
 import jumpSfxSrc from '../assets/sounds/jump.mp3';
 import duckSfxSrc from '../assets/sounds/duck.mp3';
 import deathSfxSrc from '../assets/sounds/death.mp3';
-
-export interface UserWithId extends User {
-  id?: number;
-  userId?: number;
-}
-
-interface GameScreenProps {
-  user: User;
-  onGameOver: (score: number) => void;
-  onBack: () => void;
-  soundEnabled: boolean;
-  sfxVolume: number;
-}
-
-interface Obstacle {
-  id: number;
-  x: number;
-  y: number;
-  type: 'low' | 'high' | 'flying';
-  width: number;
-  height: number;
-}
-
-interface Particle {
-  id: number;
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  life: number;
-  maxLife: number;
-}
-
-// Helper to import all frames from a folder
-function importAll(r: any) {
-  // Vite uses import.meta.glob, Webpack uses require.context
-  if ('keys' in r) {
-    return r.keys().map(r);
-  } else {
-    return Object.values(r);
-  }
-}
-
-// Import all frames for each animation (sorted)
+import coinSfxSrc from '../assets/sounds/coin.mp3';
+import coinImg from '../assets/coin.png';
+import Player, { GameState } from './GameScreen/Player';
+import Obstacles from './GameScreen/Obstacles';
+import Particles from './GameScreen/Particles';
+import PauseScreen from './GameScreen/PauseScreen';
+import GameOverScreen from './GameScreen/GameOverScreen';
+import Background from './GameScreen/Background';
+import { importAll } from './GameScreen/utils';
+import { playClick } from '../utils/clickSound';
+// Animation frames (must be top-level for use in both logic and props)
 const runFrames = importAll(import.meta.glob('../assets/run/*.png', { eager: true, as: 'url' })).sort();
 const jumpFrames = importAll(import.meta.glob('../assets/jump/*.png', { eager: true, as: 'url' })).sort();
 const duckFrames = importAll(import.meta.glob('../assets/duck/*.png', { eager: true, as: 'url' })).sort();
 const deathFrames = importAll(import.meta.glob('../assets/death/*.png', { eager: true, as: 'url' })).sort();
-
-// Helper to get PNG dimensions
-function getImageDimensions(src: string): Promise<{ width: number; height: number }> {
-  return new Promise((resolve) => {
-    const img = new window.Image();
-    img.onload = () => resolve({ width: img.width, height: img.height });
-    img.src = src;
-  });
-}
+import { Obstacle, Particle, GameScreenProps } from './GameScreen/types';
 
 // --- Dino-like constants ---
 const GROUND_Y = 0;
 const JUMP_HEIGHT = 100; // Tinggi maksimum lompatan (bisa diubah sesuai kebutuhan)
-const GRAVITY = -4.0; // Tidak terlalu besar supaya tetap tinggi, tapi naiknya cepat
 const JUMP_DURATION = 700; // ms
 const DUCK_DURATION = 700; // ms
 const ROBOT_WIDTH = 90;
@@ -83,11 +40,10 @@ const OBSTACLE_SPEED_START = 6;
 const OBSTACLE_SPEED_MAX = 13;
 const OBSTACLE_TYPES: Obstacle['type'][] = ['low', 'high'];
 
-const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, soundEnabled, sfxVolume }) => {
-  const [gameState, setGameState] = useState<'playing' | 'paused' | 'gameOver'>('playing');
+const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, soundEnabled, sfxVolume, musicVolume, onSoundSettingsChange }) => {
+  const [gameState, setGameState] = useState<GameState>('playing');
   const [score, setScore] = useState(0);
   const [robotY, setRobotY] = useState(GROUND_Y); // Mulai di ground
-  const [robotVelocity, setRobotVelocity] = useState(0);
   const [isJumping, setIsJumping] = useState(false);
   const [isDucking, setIsDucking] = useState(false);
   const [obstacles, setObstacles] = useState<Obstacle[]>([]);
@@ -100,34 +56,29 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
   const [duckFrame, setDuckFrame] = useState(0);
   const [deathFrame, setDeathFrame] = useState(0);
   const [collidedObstacleId, setCollidedObstacleId] = useState<number | null>(null);
-
-  // Local sound settings for pause menu
-  const [localSoundEnabled, setLocalSoundEnabled] = useState(soundEnabled);
-  const [localSfxVolume, setLocalSfxVolume] = useState(sfxVolume);
-  // Tambahkan state untuk music
-  const [localMusicEnabled, setLocalMusicEnabled] = useState(true);
-  const [localMusicVolume, setLocalMusicVolume] = useState(1);
+  // Tambahkan state untuk coin
+  const [coins, setCoins] = useState<{ id: number; x: number; y: number; collected: boolean }[]>([]);
+  const [coinCount, setCoinCount] = useState(0);
 
   // Sinkronkan ke parent jika berubah (opsional, jika ingin update ke parent tambahkan callback di props)
   useEffect(() => {
     // Bisa tambahkan callback ke parent jika ingin
-  }, [localSoundEnabled]);
+  }, [soundEnabled]);
   useEffect(() => {
     // Bisa tambahkan callback ke parent jika ingin
-  }, [localSfxVolume]);
+  }, [sfxVolume]);
 
   const gameLoopRef = useRef<number>();
   const obstacleIdRef = useRef(0);
   const particleIdRef = useRef(0);
   const lastObstacleRef = useRef(0);
   const lastObstacleXRef = useRef(800);
-  const keysRef = useRef<Set<string>>(new Set());
   const jumpLockRef = useRef(false);
   const duckLockRef = useRef(false);
-
-  // Helper untuk memudahkan penggunaan requestAnimationFrame dengan React
-  const requestAnimationFrameRef = useRef<(callback: FrameRequestCallback) => number>();
-  const cancelAnimationFrameRef = useRef<(id: number) => void>();
+  // Tambahkan ref untuk coin
+  const coinIdRef = useRef(0);
+  const lastCoinRef = useRef(0);
+  const gameOverHandledRef = useRef(false);
 
   // --- Dino-like obstacle spawn logic ---
   const createObstacle = useCallback(() => {
@@ -184,87 +135,77 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
     lastObstacleRef.current = Date.now();
   }, []);
 
-  const checkCollision = useCallback((robot: {x: number, y: number, width: number, height: number}, obstacle: any) => {
-    // Collider obstacle pakai ukuran tetap (bukan PNG)
-    const robotHeight = isDucking ? ROBOT_HEIGHT * 0.6 : ROBOT_HEIGHT;
-    const robotYPos = isDucking ? GROUND_Y : robot.y;
-    const robotRect = {
-      x: 80,
-      y: robotYPos,
-      width: ROBOT_WIDTH,
-      height: robotHeight,
-    };
-    const obstacleRect = {
-      x: obstacle.x,
-      y: obstacle.y,
-      width: obstacle.width,
-      height: obstacle.height,
-    };
-    // AABB collision
-    const overlap =
-      robotRect.x < obstacleRect.x + obstacleRect.width &&
-      robotRect.x + robotRect.width > obstacleRect.x &&
-      robotRect.y < obstacleRect.y + obstacleRect.height &&
-      robotRect.y + robotRect.height > obstacleRect.y;
-
-    if (obstacle.type === 'low') {
-      if (!isDucking && overlap) return true;
-      return false;
-    } else if (obstacle.type === 'high') {
-      if (!isJumping && overlap) return true;
-      return false;
-    }
-    return false;
-  }, [isDucking, isJumping]);
+  // Fungsi untuk generate coin secara random
+  const createCoin = useCallback(() => {
+    // Coin muncul di antara ground dan batas atas lompatan robot
+    const minY = 56 + 10;
+    const maxY = 56 + 80;
+    const y = Math.floor(Math.random() * (maxY - minY)) + minY;
+    // Spawn X mirip obstacle
+    const x = lastObstacleXRef.current + OBSTACLE_MIN_GAP + Math.random() * (OBSTACLE_MAX_GAP - OBSTACLE_MIN_GAP);
+    lastObstacleXRef.current = x;
+    setCoins(prev => [
+      ...prev,
+      {
+        id: coinIdRef.current++,
+        x,
+        y,
+        collected: false
+      }
+    ]);
+    lastCoinRef.current = Date.now();
+  }, []);
 
   // Music and SFX Howl instances
   const musicRef = useRef<Howl | null>(null);
   const jumpSfxRef = useRef<Howl | null>(null);
   const duckSfxRef = useRef<Howl | null>(null);
   const deathSfxRef = useRef<Howl | null>(null);
+  const coinSfxRef = useRef<Howl | null>(null);
 
   // Setup music and SFX on mount
   useEffect(() => {
-    // Music
     if (musicRef.current) {
       musicRef.current.unload();
     }
     musicRef.current = new Howl({
       src: [playMusicSrc],
       loop: true,
-      volume: localMusicEnabled ? localMusicVolume : 0,
+      volume: soundEnabled ? musicVolume : 0,
       html5: true,
     });
-    if (localMusicEnabled && gameState === 'playing') {
+    if (soundEnabled && gameState === 'playing' && musicRef.current) {
       musicRef.current.play();
     }
-    // SFX
-    jumpSfxRef.current = new Howl({ src: [jumpSfxSrc], volume: localSoundEnabled ? localSfxVolume : 0.0 });
-    duckSfxRef.current = new Howl({ src: [duckSfxSrc], volume: localSoundEnabled ? localSfxVolume : 0.0 });
-    deathSfxRef.current = new Howl({ src: [deathSfxSrc], volume: localSoundEnabled ? localSfxVolume : 0.0 });
+    // SFX setup tetap
+    jumpSfxRef.current = new Howl({ src: [jumpSfxSrc], volume: soundEnabled ? sfxVolume : 0.0 });
+    duckSfxRef.current = new Howl({ src: [duckSfxSrc], volume: soundEnabled ? sfxVolume : 0.0 });
+    deathSfxRef.current = new Howl({ src: [deathSfxSrc], volume: soundEnabled ? sfxVolume : 0.0 });
+    coinSfxRef.current = new Howl({ src: [coinSfxSrc], volume: soundEnabled ? sfxVolume : 0.0 });
     return () => {
       musicRef.current?.stop();
       musicRef.current?.unload();
     };
-  }, []);
+  }, [soundEnabled, musicVolume, sfxVolume, gameState]);
 
   // React to music toggle/volume or gameState
   useEffect(() => {
     if (!musicRef.current) return;
-    musicRef.current.volume(localMusicEnabled ? localMusicVolume : 0);
-    if (localMusicEnabled && gameState === 'playing') {
+    musicRef.current.volume(soundEnabled ? musicVolume : 0);
+    if (soundEnabled && gameState === 'playing') {
       if (!musicRef.current.playing()) musicRef.current.play();
     } else {
       musicRef.current.pause();
     }
-  }, [localMusicEnabled, localMusicVolume, gameState]);
+  }, [soundEnabled, musicVolume, gameState]);
 
   // React to SFX toggle/volume
   useEffect(() => {
-    if (jumpSfxRef.current) jumpSfxRef.current.volume(localSoundEnabled ? localSfxVolume : 0.0);
-    if (duckSfxRef.current) duckSfxRef.current.volume(localSoundEnabled ? localSfxVolume : 0.0);
-    if (deathSfxRef.current) deathSfxRef.current.volume(localSoundEnabled ? localSfxVolume : 0.0);
-  }, [localSoundEnabled, localSfxVolume]);
+    if (jumpSfxRef.current) jumpSfxRef.current.volume(soundEnabled ? sfxVolume : 0.0);
+    if (duckSfxRef.current) duckSfxRef.current.volume(soundEnabled ? sfxVolume : 0.0);
+    if (deathSfxRef.current) deathSfxRef.current.volume(soundEnabled ? sfxVolume : 0.0);
+    if (coinSfxRef.current) coinSfxRef.current.volume(soundEnabled ? sfxVolume : 0.0);
+  }, [soundEnabled, sfxVolume]);
 
   // Helper: Add particles (must be above gameLoop)
   const addParticles = useCallback((x: number, y: number, count: number = 5) => {
@@ -285,7 +226,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
 
   // Helper: Play SFX (must be above gameLoop)
   const playSound = useCallback((type: 'jump' | 'duck' | 'crash') => {
-    if (!localSoundEnabled) return;
+    if (!soundEnabled) return;
     switch (type) {
       case 'jump':
         jumpSfxRef.current?.play();
@@ -297,10 +238,12 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
         deathSfxRef.current?.play();
         break;
     }
-  }, [localSoundEnabled]);
+  }, [soundEnabled]);
 
   // Helper: Handle game over (must be above gameLoop)
   const handleGameOver = useCallback(async (finalScore: number) => {
+    if (gameOverHandledRef.current) return; // Guard agar hanya sekali
+    gameOverHandledRef.current = true;
     setSubmitting(true);
     setSubmitError(null);
     try {
@@ -308,14 +251,14 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
       const userWithId = user as any;
       const userId = userWithId.id ?? userWithId.userId;
       if (token && userId) {
-        await submitGameSession(userId, { score: finalScore }, token);
+        await submitGameSession(userId, { score: finalScore, coinsCollected: coinCount }, token);
       }
     } catch (err: any) {
       setSubmitError('Gagal submit skor ke server');
     }
     setSubmitting(false);
-    onGameOver(finalScore);
-  }, [user, onGameOver]);
+    onGameOver(finalScore, coinCount); // Pass both score and coinsCollected
+  }, [user, onGameOver, coinCount]);
 
   // --- Dino-like game loop ---
   const gameLoop = useCallback(() => {
@@ -360,7 +303,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
           setGameState('gameOver');
           playSound('crash');
           addParticles(robotRect.x + ROBOT_WIDTH / 2, robotRect.y + robotRect.height / 2, 12);
-          handleGameOver(score);
+          // REMOVE: handleGameOver(score); // Now handled in useEffect
           return updated;
         }
       }
@@ -372,8 +315,47 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
       y: particle.y + particle.vy,
       life: particle.life - 1
     })).filter(particle => particle.life > 0));
-    setScore(prev => prev + 1);
+    // Score hanya di-increment jika belum game over
+    setScore(prev => gameOverHandledRef.current ? prev : prev + 1);
     setGameSpeed(prev => Math.min(prev + 0.002, OBSTACLE_SPEED_MAX));
+    // Update coins di gameLoop (gabungkan pergerakan, filter, dan collision dalam satu setCoins)
+    setCoins(prev => {
+      let coinsCollectedThisFrame = 0;
+      let playCoinSound = false;
+      const updated = prev
+        .map(coin => {
+          // Gerakkan coin
+          const moved = { ...coin, x: coin.x - gameSpeed };
+          // Jika sudah diambil, tetap collected
+          if (moved.collected) return moved;
+          // Deteksi collision
+          const robotRect = { x: 500, y: 56 + robotY, width: ROBOT_WIDTH, height: isDucking ? ROBOT_HEIGHT * 0.7 : ROBOT_HEIGHT };
+          const coinRect = { x: moved.x, y: moved.y, width: 32, height: 32 };
+          const overlap =
+            robotRect.x < coinRect.x + coinRect.width &&
+            robotRect.x + robotRect.width > coinRect.x &&
+            robotRect.y < coinRect.y + coinRect.height &&
+            robotRect.y + robotRect.height > coinRect.y;
+          if (overlap && !moved.collected) {
+            coinsCollectedThisFrame++;
+            playCoinSound = true;
+            return { ...moved, collected: true };
+          }
+          return moved;
+        })
+        // Hapus coin hanya jika sudah keluar layar
+        .filter(coin => coin.x > -32);
+      if (coinsCollectedThisFrame > 0) {
+        setCoinCount(c => c + coinsCollectedThisFrame);
+        if (playCoinSound && coinSfxRef.current) coinSfxRef.current.play();
+      }
+      return updated;
+    });
+    // Generate coin secara random
+    const now = Date.now();
+    if (now - lastCoinRef.current > 1200 + Math.random() * 2000) {
+      createCoin();
+    }
     gameLoopRef.current = requestAnimationFrame(gameLoop);
   }, [gameState, gameSpeed, score, createObstacle, playSound, addParticles, handleGameOver, robotY, isDucking, isJumping]);
 
@@ -419,7 +401,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
         e.preventDefault();
         duck();
       }
-      if (e.code === 'KeyP') {
+      if (e.code === 'KeyP' || e.code === 'Escape') {
         e.preventDefault();
         setGameState(prev => prev === 'playing' ? 'paused' : 'playing');
       }
@@ -506,21 +488,35 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
   const resetGame = () => {
     setScore(0);
     setRobotY(GROUND_Y);
-    setRobotVelocity(0);
     setIsJumping(false);
     setIsDucking(false);
     setObstacles([]);
     setParticles([]);
+    setCoins([]);
+    setCoinCount(0);
     setGameSpeed(OBSTACLE_SPEED_START);
     setGameState('playing');
     lastObstacleRef.current = 0;
     lastObstacleXRef.current = 800;
+    gameOverHandledRef.current = false;
     // Restart music from beginning when Play Again is pressed
     if (musicRef.current) {
       musicRef.current.seek(0);
-      if (localMusicEnabled) musicRef.current.play();
+      if (soundEnabled) musicRef.current.play();
     }
   };
+
+  // Handler untuk update sound setting global dari PauseScreen
+  const handleSoundSettingsChange = (enabled: boolean, music: number, sfx: number) => {
+    onSoundSettingsChange(enabled, music, sfx);
+  };
+
+  // Add this after handleGameOver definition:
+  useEffect(() => {
+    if (gameState === 'gameOver') {
+      handleGameOver(score);
+    }
+  }, [gameState, handleGameOver, score]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-900 via-blue-900 to-black relative overflow-hidden">
@@ -539,9 +535,17 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
           <div className="text-white font-bold text-xl bg-black/50 px-4 py-2 rounded-lg border border-cyan-500/30 backdrop-blur-sm">
             Score: <span className="text-cyan-400">{score}</span>
           </div>
+          {/* Tampilkan coin di UI */}
+          <div className="flex items-center gap-2 text-yellow-300 font-bold text-xl bg-black/50 px-4 py-2 rounded-lg border border-yellow-400/30 backdrop-blur-sm">
+            <img src={coinImg} alt="Coin" className="w-6 h-6 mr-1 inline-block" />
+            {coinCount}
+          </div>
           
           <button
-            onClick={() => setGameState(gameState === 'playing' ? 'paused' : 'playing')}
+            onClick={() => {
+              if (soundEnabled) playClick(sfxVolume);
+              setGameState(gameState === 'playing' ? 'paused' : 'playing');
+            }}
             className="pause-btn flex items-center gap-2 px-4 py-2 bg-black/50 text-white rounded-lg border border-gray-600 hover:border-purple-400 transition-colors backdrop-blur-sm"
           >
             {gameState === 'playing' ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
@@ -591,264 +595,79 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
         {/* Game entities */}
         <div className="absolute inset-0">
           {/* Robot player */}
-          <div
-            className="absolute transition-all duration-100"
-            style={{
-              left: '500px', // start lebih ke kanan
-              bottom: `${56 + robotY}px`,
-              width: `${ROBOT_WIDTH}px`,
-              height: `${isDucking ? ROBOT_HEIGHT * 0.7 : ROBOT_HEIGHT}px`,
-              transform: 'scaleX(-1)',
-              zIndex: 10,
-              boxShadow: collidedObstacleId !== null ? '0 0 32px 8px #ff0033, 0 0 0 8px #ff003388' : undefined,
-              background: collidedObstacleId !== null ? 'rgba(255,0,0,0.15)' : undefined,
-              transition: 'box-shadow 0.1s, background 0.1s',
-            }}
-          >
-            {/* Garis collider player (merah) */}
-            <div style={{
-              position: 'absolute',
-              left: 0,
-              top: 0,
-              width: '100%',
-              height: '100%',
-              border: '2px dashed red',
-              boxSizing: 'border-box',
-              pointerEvents: 'none',
-              zIndex: 100,
-            }} />
-            {gameState === 'gameOver' ? (
-              <img src={deathFrames[deathFrame]} alt="Robot Death" style={{ width: '100%', height: '100%' }} draggable={false} />
-            ) : isJumping ? (
-              <img src={jumpFrames[jumpFrame]} alt="Robot Jump" style={{ width: '100%', height: '100%' }} draggable={false} />
-            ) : isDucking ? (
-              <img src={duckFrames[duckFrame]} alt="Robot Duck" style={{ width: '100%', height: '100%' }} draggable={false} />
-            ) : (
-              <img src={runFrames[runFrame]} alt="Robot Run" style={{ width: '100%', height: '100%' }} draggable={false} />
-            )}
-          </div>
+          <Player
+            gameState={gameState}
+            isJumping={isJumping}
+            isDucking={isDucking}
+            runFrame={runFrame}
+            jumpFrame={jumpFrame}
+            duckFrame={duckFrame}
+            deathFrame={deathFrame}
+            robotY={robotY}
+            ROBOT_WIDTH={90}
+            ROBOT_HEIGHT={120}
+            collidedObstacleId={collidedObstacleId}
+            runFrames={runFrames}
+            jumpFrames={jumpFrames}
+            duckFrames={duckFrames}
+            deathFrames={deathFrames}
+          />
 
           {/* Obstacles */}
-          {obstacles.map(obstacle => {
-            let obstacleImg = obstacleJumpImg;
-            let extraStyle = {};
-            if (obstacle.type === 'low') {
-              obstacleImg = obstacleDuckImg;
-            } else if (obstacle.type === 'high') {
-              obstacleImg = obstacleJumpImg;
-              // Tambahkan animasi berputar untuk obstacle jump.png
-              extraStyle = {
-                animation: 'spinObstacle 1.2s linear infinite',
-              };
-            }
-            return (
-              <div
-                key={obstacle.id}
-                className={`absolute${obstacle.type === 'high' ? ' spin-obstacle' : ''}`}
-                style={{
-                  left: `${obstacle.x}px`,
-                  bottom: `${56 + obstacle.y}px`,
-                  width: `${obstacle.width}px`,
-                  height: `${obstacle.height}px`,
-                  zIndex: 8,
-                  boxShadow: collidedObstacleId === obstacle.id ? '0 0 32px 8px #ff0033, 0 0 0 8px #ff003388' : undefined,
-                  background: collidedObstacleId === obstacle.id ? 'rgba(255,0,0,0.15)' : undefined,
-                  transition: 'box-shadow 0.1s, background 0.1s',
-                }}
-              >
-                {/* Garis collider obstacle (biru) */}
-                <div style={{
-                  position: 'absolute',
-                  left: 0,
-                  top: 0,
-                  width: '100%',
-                  height: '100%',
-                  border: '2px dashed blue',
-                  boxSizing: 'border-box',
-                  pointerEvents: 'none',
-                  zIndex: 100,
-                }} />
-                <img
-                  src={obstacleImg}
-                  alt={obstacle.type}
-                  className="select-none pointer-events-none"
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'contain',
-                    filter: 'drop-shadow(0 0 16px #ff0033) drop-shadow(0 0 8px #ff0033) drop-shadow(0 0 2px #fff8)',
-                  }}
-                  draggable={false}
-                />
-              </div>
-            );
-          })}
-
+          <Obstacles
+            obstacles={obstacles}
+            collidedObstacleId={collidedObstacleId}
+            obstacleJumpImg={obstacleJumpImg}
+            obstacleDuckImg={obstacleDuckImg}
+          />
           {/* Particles */}
-          {particles.map(particle => (
-            <div
-              key={particle.id}
-              className="absolute w-1 h-1 bg-cyan-400 rounded-full"
+          <Particles particles={particles} />
+          {/* Render coin di map */}
+          {coins.map(coin => !coin.collected && (
+            <img
+              key={coin.id}
+              src={coinImg}
+              alt="Coin"
+              className="absolute select-none pointer-events-none"
               style={{
-                left: `${particle.x}px`,
-                bottom: `${600 - particle.y}px`,
-                opacity: particle.life / particle.maxLife
+                left: `${coin.x}px`,
+                bottom: `${coin.y}px`,
+                width: '32px',
+                height: '32px',
+                zIndex: 9,
+                filter: 'drop-shadow(0 0 8px #ff0a) drop-shadow(0 0 2px #fff8)'
               }}
-            ></div>
+              draggable={false}
+            />
           ))}
         </div>
 
         {/* Cyberpunk city background (parallax) */}
-        <div className="absolute inset-0 pointer-events-none z-0">
-          {/* Layer 1: Siluet gedung jauh */}
-          <svg width="100%" height="180" style={{ position: 'absolute', bottom: 32, left: 0 }}>
-            <rect x="0" y="80" width="60" height="100" fill="#222a" />
-            <rect x="70" y="60" width="50" height="120" fill="#223a" />
-            <rect x="130" y="100" width="80" height="80" fill="#223a" />
-            <rect x="220" y="90" width="40" height="90" fill="#223a" />
-            <rect x="270" y="70" width="100" height="110" fill="#223a" />
-            <rect x="380" y="110" width="60" height="70" fill="#223a" />
-            <rect x="450" y="80" width="90" height="100" fill="#223a" />
-            <rect x="550" y="60" width="60" height="120" fill="#223a" />
-            <rect x="620" y="100" width="80" height="80" fill="#223a" />
-            <rect x="710" y="90" width="40" height="90" fill="#223a" />
-            <rect x="760" y="70" width="100" height="110" fill="#223a" />
-          </svg>
-          {/* Layer 2: Gedung lebih dekat, lampu neon */}
-          <svg width="100%" height="120" style={{ position: 'absolute', bottom: 32, left: 0 }}>
-            <rect x="30" y="60" width="40" height="60" fill="#0ff8" />
-            <rect x="120" y="40" width="30" height="80" fill="#f0f8" />
-            <rect x="200" y="70" width="60" height="50" fill="#0ff8" />
-            <rect x="300" y="50" width="40" height="70" fill="#f0f8" />
-            <rect x="400" y="60" width="50" height="60" fill="#0ff8" />
-            <rect x="500" y="40" width="30" height="80" fill="#f0f8" />
-            <rect x="600" y="70" width="60" height="50" fill="#0ff8" />
-            <rect x="700" y="50" width="40" height="70" fill="#f0f8" />
-          </svg>
-          {/* Lampu neon di gedung */}
-          <div className="absolute left-40 bottom-44 w-2 h-8 bg-cyan-400 rounded-full blur-sm animate-pulse" />
-          <div className="absolute left-80 bottom-52 w-2 h-8 bg-pink-400 rounded-full blur-sm animate-pulse" />
-          <div className="absolute left-[60%] bottom-40 w-2 h-8 bg-yellow-400 rounded-full blur-sm animate-pulse" />
-        </div>
-
-        {/* Background cyberpunk city image */}
-        <img
-          src={cityBg}
-          alt="Cyberpunk City Background"
-          className="absolute inset-0 w-full h-full object-cover z-0 select-none pointer-events-none"
-          style={{
-            minHeight: '100vh',
-            minWidth: '100vw',
-            objectFit: 'cover',
-            filter: 'brightness(0.7) saturate(1.2) blur(0.5px)',
-          }}
-          draggable={false}
-        />
+        <Background cityBg={cityBg} />
       </div>
 
       {/* Pause screen */}
       {gameState === 'paused' && (
-        <div className="absolute inset-0 bg-black/70 backdrop-blur-[2px] flex items-center justify-center z-30">
-          <div className="mx-auto w-full max-w-xs bg-gradient-to-br from-[#1a1a2e] via-[#23234d] to-[#0f3460] rounded-2xl shadow-2xl border-2 border-cyan-400/40 p-8 flex flex-col items-center gap-6 animate-fade-in">
-            <h2 className="text-4xl font-extrabold text-cyan-300 drop-shadow-lg tracking-wider mb-2 neon-glow">PAUSED</h2>
-            <button
-              onClick={() => setGameState('playing')}
-              className="w-full px-6 py-3 bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-bold rounded-lg shadow-md hover:shadow-cyan-400/40 hover:scale-105 transition-all duration-200 mb-2"
-            >
-              Resume
-            </button>
-            {/* Sound Settings */}
-            <div className="w-full bg-black/40 rounded-lg p-4 border border-cyan-400/20 flex flex-col gap-4 mb-2">
-              {/* SFX */}
-              <div className="mb-2">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-cyan-200 font-semibold">Sound Effects</span>
-                  <button
-                    onClick={() => setLocalSoundEnabled(!localSoundEnabled)}
-                    className={`w-10 h-6 flex items-center rounded-full p-1 transition-colors duration-200 ${localSoundEnabled ? 'bg-cyan-400' : 'bg-gray-600'}`}
-                    aria-label="Toggle SFX"
-                  >
-                    <span
-                      className={`h-4 w-4 bg-white rounded-full shadow transform transition-transform duration-200 ${localSoundEnabled ? 'translate-x-4' : ''}`}
-                    />
-                  </button>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-cyan-200 text-xs">Volume</span>
-                  <input
-                    type="range"
-                    min={0}
-                    max={1}
-                    step={0.01}
-                    value={localSfxVolume}
-                    onChange={e => setLocalSfxVolume(Number(e.target.value))}
-                    className="w-24 accent-cyan-400"
-                  />
-                  <span className="text-cyan-200 text-xs">{Math.round(localSfxVolume * 100)}</span>
-                </div>
-              </div>
-              {/* Music */}
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-purple-200 font-semibold">Music</span>
-                  <button
-                    onClick={() => setLocalMusicEnabled(!localMusicEnabled)}
-                    className={`w-10 h-6 flex items-center rounded-full p-1 transition-colors duration-200 ${localMusicEnabled ? 'bg-purple-400' : 'bg-gray-600'}`}
-                    aria-label="Toggle Music"
-                  >
-                    <span
-                      className={`h-4 w-4 bg-white rounded-full shadow transform transition-transform duration-200 ${localMusicEnabled ? 'translate-x-4' : ''}`}
-                    />
-                  </button>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-purple-200 text-xs">Volume</span>
-                  <input
-                    type="range"
-                    min={0}
-                    max={1}
-                    step={0.01}
-                    value={localMusicVolume}
-                    onChange={e => setLocalMusicVolume(Number(e.target.value))}
-                    className="w-24 accent-purple-400"
-                  />
-                  <span className="text-purple-200 text-xs">{Math.round(localMusicVolume * 100)}</span>
-                </div>
-              </div>
-            </div>
-            <button
-              onClick={onBack}
-              className="w-full px-6 py-3 bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-bold rounded-lg shadow-md hover:shadow-cyan-400/40 hover:scale-105 transition-all duration-200"
-            >
-              Back to Menu
-            </button>
-          </div>
-        </div>
+        <PauseScreen
+          onResume={() => setGameState('playing')}
+          onBack={onBack}
+          soundEnabled={soundEnabled}
+          sfxVolume={sfxVolume}
+          musicVolume={musicVolume}
+          onSoundSettingsChange={handleSoundSettingsChange}
+        />
       )}
       {/* Game Over screen */}
       {gameState === 'gameOver' && (
-        <div className="absolute inset-0 bg-black/80 backdrop-blur-[2px] flex items-center justify-center z-30">
-          <div className="mx-auto w-full max-w-xs bg-gradient-to-br from-[#1a1a2e] via-[#23234d] to-[#0f3460] rounded-2xl shadow-2xl border-2 border-cyan-400/40 p-8 flex flex-col items-center gap-6 animate-fade-in">
-            <h2 className="text-4xl font-extrabold text-cyan-300 drop-shadow-lg tracking-wider mb-2 neon-glow">GAME OVER</h2>
-            <div className="text-white text-lg font-semibold mb-2">Score: <span className="text-cyan-400">{score}</span></div>
-            <button
-              onClick={onBack}
-              className="w-full px-6 py-3 bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-bold rounded-lg shadow-md hover:shadow-cyan-400/40 hover:scale-105 transition-all duration-200 mb-2"
-            >
-              Back to Menu
-            </button>
-            <button
-              onClick={resetGame}
-              className="w-full px-6 py-3 bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-bold rounded-lg shadow-md hover:shadow-cyan-400/40 hover:scale-105 transition-all duration-200"
-            >
-              Play Again
-            </button>
-            {submitting && <div className="text-cyan-300 text-sm mt-2">Submitting score...</div>}
-            {submitError && <div className="text-red-400 text-sm mt-2">{submitError}</div>}
-          </div>
-        </div>
+        <GameOverScreen
+          score={score}
+          coinCount={coinCount}
+          onBack={onBack}
+          onRestart={resetGame}
+          submitting={submitting}
+          submitError={submitError}
+        />
       )}
-      {/* Moved @keyframes spinObstacle to global CSS (e.g., src/index.css) */}
     </div>
   );
 };

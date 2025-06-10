@@ -3,6 +3,7 @@ package com.nelson.proyekoop.controller;
 import com.nelson.proyekoop.dto.ApiResponse;
 import com.nelson.proyekoop.dto.GameScoreDTO;
 import com.nelson.proyekoop.dto.GameSessionDTO;
+import com.nelson.proyekoop.dto.UserDTO;
 import com.nelson.proyekoop.service.GameSessionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -22,11 +23,13 @@ public class GameSessionController {
     }
 
     @PostMapping("/user/{userId}")
-    public ResponseEntity<ApiResponse<GameSessionDTO>> saveGameSession(
+    public ResponseEntity<ApiResponse<UserDTO>> saveGameSession(
             @PathVariable Long userId,
             @RequestBody GameScoreDTO gameScoreDTO) {
         GameSessionDTO savedSession = gameSessionService.saveGameSession(userId, gameScoreDTO);
-        ApiResponse<GameSessionDTO> response = new ApiResponse<>(true, "Game session saved successfully", savedSession);
+        // Ambil user terbaru setelah coin diupdate
+        UserDTO userDTO = gameSessionService.getUserService().getUserById(userId);
+        ApiResponse<UserDTO> response = new ApiResponse<>(true, "Game session saved successfully", userDTO);
         return ResponseEntity.ok(response);
     }
 

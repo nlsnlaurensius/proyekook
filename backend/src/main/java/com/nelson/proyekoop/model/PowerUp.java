@@ -22,18 +22,17 @@ public class PowerUp {
     @Column(name = "effect_multiplier")
     private Double effectMultiplier;
 
-    @Column(name = "icon_url")
-    private String iconUrl;
+    @Column(name = "price", nullable = false)
+    private Integer price = 0;
 
     public PowerUp() {
     }
 
-    public PowerUp(String name, String description, Integer duration, Double effectMultiplier, String iconUrl) {
+    public PowerUp(String name, String description, Integer duration, Double effectMultiplier) {
         this.name = name;
         this.description = description;
         this.duration = duration;
         this.effectMultiplier = effectMultiplier;
-        this.iconUrl = iconUrl;
     }
 
     public Long getId() {
@@ -76,11 +75,11 @@ public class PowerUp {
         this.effectMultiplier = effectMultiplier;
     }
 
-    public String getIconUrl() {
-        return iconUrl;
+    public Integer getPrice() {
+        return price;
     }
 
-    public void setIconUrl(String iconUrl) {
-        this.iconUrl = iconUrl;
+    public void setPrice(Integer price) {
+        this.price = price;
     }
 }

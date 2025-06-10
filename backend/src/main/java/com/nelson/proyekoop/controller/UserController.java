@@ -1,7 +1,6 @@
 package com.nelson.proyekoop.controller;
 
 import com.nelson.proyekoop.dto.ApiResponse;
-import com.nelson.proyekoop.dto.LeaderboardEntryDTO;
 import com.nelson.proyekoop.dto.UserDTO;
 import com.nelson.proyekoop.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,7 +8,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -49,13 +47,6 @@ public class UserController {
     public ResponseEntity<ApiResponse<UserDTO>> getUserByUsername(@PathVariable String username) {
         UserDTO userDTO = userService.getUserByUsername(username);
         ApiResponse<UserDTO> response = new ApiResponse<>(true, "User fetched successfully", userDTO);
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/leaderboard")
-    public ResponseEntity<ApiResponse<List<LeaderboardEntryDTO>>> getLeaderboard() {
-        List<LeaderboardEntryDTO> leaderboard = userService.getLeaderboard();
-        ApiResponse<List<LeaderboardEntryDTO>> response = new ApiResponse<>(true, "Leaderboard fetched successfully", leaderboard);
         return ResponseEntity.ok(response);
     }
 }

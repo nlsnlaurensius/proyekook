@@ -13,8 +13,7 @@ CREATE TABLE power_ups (
     name VARCHAR(255) NOT NULL UNIQUE,
     description TEXT,
     duration INTEGER,
-    effect_multiplier DOUBLE PRECISION,
-    icon_url VARCHAR(255)
+    effect_multiplier DOUBLE PRECISION
 );
 
 -- Create game_sessions table
@@ -24,7 +23,6 @@ CREATE TABLE game_sessions (
     score INTEGER NOT NULL,
     coins_collected INTEGER,
     played_at TIMESTAMP,
-    distance_traveled INTEGER,
     power_up_id INTEGER,
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (power_up_id) REFERENCES power_ups(id)

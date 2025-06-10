@@ -10,12 +10,8 @@ import java.util.List;
 
 @Repository
 public interface GameSessionRepository extends JpaRepository<GameSession, Long> {
-
     List<GameSession> findByUserOrderByScoreDesc(User user);
 
-    @Query("SELECT g FROM GameSession g ORDER BY g.score DESC")
+    @Query("SELECT gs FROM GameSession gs ORDER BY gs.score DESC LIMIT 10")
     List<GameSession> findTopGameSessions();
-
-    @Query("SELECT g FROM GameSession g WHERE g.user = ?1 ORDER BY g.score DESC")
-    List<GameSession> findTopGameSessionsByUser(User user);
 }

@@ -4,7 +4,8 @@ import LoginScreen from './components/LoginScreen';
 import GameScreen from './components/GameScreen';
 import SoundSettings from './components/SoundSettings';
 import LeaderboardScreen from './components/LeaderboardScreen';
-import { login as apiLogin, getLeaderboard, submitGameSession, getUserByUsername } from './utils/api';
+import { login as apiLogin, getLeaderboard, getUserByUsername } from './utils/api';
+import { playClick } from './utils/clickSound';
 
 export type Screen = 'home' | 'login' | 'game' | 'settings' | 'leaderboard';
 
@@ -12,6 +13,7 @@ export interface User {
   username: string;
   highScore: number;
   id?: number;
+  coin?: number; // Add coin field for coin balance
 }
 
 export interface LeaderboardEntry {
@@ -61,6 +63,17 @@ function App() {
     fetchLeaderboard();
   }, []);
 
+  useEffect(() => {
+    function handleGlobalClick(e: MouseEvent) {
+      // Deteksi jika sedang di GameScreen dan bukan pause
+      if (currentScreen === 'game') return;
+      if (!soundEnabled) return;
+      playClick(sfxVolume);
+    }
+    window.addEventListener('click', handleGlobalClick);
+    return () => window.removeEventListener('click', handleGlobalClick);
+  }, [currentScreen, soundEnabled, sfxVolume]);
+
   const handleLogin = async (username: string, password?: string) => {
     try {
       let res;
@@ -98,34 +111,25 @@ function App() {
     setCurrentScreen('home');
   };
 
-  const updateHighScore = async (score: number) => {
+  const updateHighScore = async (score: number, coinsCollected?: number): Promise<void> => {
+    // Update highScore di local state jika perlu
     if (user && score > user.highScore) {
       const updatedUser = { ...user, highScore: score };
       setUser(updatedUser);
       localStorage.setItem('neonRunnerUser', JSON.stringify(updatedUser));
     }
-    // Submit score to backend
-    if (user && score > 100) {
-      try {
-        const token = localStorage.getItem('neonRunnerToken');
-        if (token && user.id) {
-          await submitGameSession(user.id, { score }, token);
-        }
-      } catch (e) {
-        // handle error (could show toast)
-      }
-      // Refresh leaderboard after submit
-      try {
-        const token = localStorage.getItem('neonRunnerToken') || undefined;
-        const res = await getLeaderboard(token);
-        const leaderboardData = res?.data || res?.payload || [];
-        setLeaderboard(leaderboardData.map((entry: any) => ({
-          username: entry.username,
-          score: entry.score,
-          rank: entry.rank,
-        })));
-      } catch (e) {}
-    }
+    // Jangan submit ke backend di sini! (Sudah dilakukan di GameScreen)
+    // Refresh leaderboard setelah submit (opsional, bisa fetch ulang leaderboard jika ingin)
+    try {
+      const token = localStorage.getItem('neonRunnerToken') || undefined;
+      const res = await getLeaderboard(token);
+      const leaderboardData = res?.data || res?.payload || [];
+      setLeaderboard(leaderboardData.map((entry: any) => ({
+        username: entry.username,
+        score: entry.score,
+        rank: entry.rank,
+      })));
+    } catch (e) {}
   };
 
   const handlePlayNow = () => {
@@ -134,6 +138,18 @@ function App() {
     } else {
       setCurrentScreen('login');
     }
+  };
+
+  // Handler untuk update sound settings dari GameScreen/PauseScreen
+  const handleSoundSettingsChange = (enabled: boolean, music: number, sfx: number) => {
+    setSoundEnabled(enabled);
+    setMusicVolume(music);
+    setSfxVolume(sfx);
+    localStorage.setItem('neonRunnerSoundSettings', JSON.stringify({
+      soundEnabled: enabled,
+      musicVolume: music,
+      sfxVolume: sfx
+    }));
   };
 
   const saveSoundSettings = (enabled: boolean, music: number, sfx: number) => {
@@ -157,6 +173,8 @@ function App() {
             onSettings={() => setCurrentScreen('settings')}
             onLeaderboard={() => setCurrentScreen('leaderboard')}
             onLogout={handleLogout}
+            musicEnabled={soundEnabled}
+            musicVolume={musicVolume}
           />
         );
       case 'login':
@@ -170,10 +188,12 @@ function App() {
         return (
           <GameScreen
             user={user!}
-            onGameOver={updateHighScore}
+            onGameOver={async (score: number, coinsCollected: number) => { await updateHighScore(score, coinsCollected); }}
             onBack={() => setCurrentScreen('home')}
             soundEnabled={soundEnabled}
             sfxVolume={sfxVolume}
+            musicVolume={musicVolume}
+            onSoundSettingsChange={handleSoundSettingsChange}
           />
         );
       case 'settings':

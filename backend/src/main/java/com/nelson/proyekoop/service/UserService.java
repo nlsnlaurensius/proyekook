@@ -1,6 +1,5 @@
 package com.nelson.proyekoop.service;
 
-import com.nelson.proyekoop.dto.LeaderboardEntryDTO;
 import com.nelson.proyekoop.dto.UserDTO;
 import com.nelson.proyekoop.model.User;
 import com.nelson.proyekoop.repository.UserRepository;
@@ -8,8 +7,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -55,22 +52,6 @@ public class UserService {
         throw new RuntimeException("User not found with username: " + username);
     }
 
-    public List<LeaderboardEntryDTO> getLeaderboard() {
-        List<User> topUsers = userRepository.findTopUsersByHighestScore();
-        List<LeaderboardEntryDTO> leaderboard = new ArrayList<>();
-
-        for (int i = 0; i < topUsers.size(); i++) {
-            User user = topUsers.get(i);
-            leaderboard.add(new LeaderboardEntryDTO(
-                    user.getUsername(),
-                    user.getHighestScore(),
-                    i + 1
-            ));
-        }
-
-        return leaderboard;
-    }
-
     public UserDTO updateHighScore(Long userId, Integer score) {
         Optional<User> userOptional = userRepository.findById(userId);
         if (userOptional.isPresent()) {
@@ -89,12 +70,17 @@ public class UserService {
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
     }
 
+    public User saveUser(User user) {
+        return userRepository.save(user);
+    }
+
     private UserDTO convertToDTO(User user) {
         return new UserDTO(
                 user.getId(),
                 user.getUsername(),
                 user.getEmail(),
-                user.getHighestScore()
+                user.getHighestScore(),
+                user.getCoin()
         );
     }
 }

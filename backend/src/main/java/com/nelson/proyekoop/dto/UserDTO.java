@@ -6,15 +6,17 @@ public class UserDTO {
     private String email;
     private String password;
     private Integer highestScore;
+    private Integer coin;
 
     public UserDTO() {
     }
 
-    public UserDTO(Long id, String username, String email, Integer highestScore) {
+    public UserDTO(Long id, String username, String email, Integer highestScore, Integer coin) {
         this.id = id;
         this.username = username;
         this.email = email;
         this.highestScore = highestScore;
+        this.coin = coin;
     }
 
     public Long getId() {
@@ -55,5 +57,13 @@ public class UserDTO {
 
     public void setHighestScore(Integer highestScore) {
         this.highestScore = highestScore;
+    }
+
+    public Integer getCoin() {
+        return coin;
+    }
+
+    public void setCoin(Integer coin) {
+        this.coin = coin;
     }
 }

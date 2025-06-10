@@ -22,6 +22,9 @@ public class User {
     @Column(name = "highest_score")
     private Integer highestScore = 0;
 
+    @Column(name = "coin")
+    private Integer coin = 0;
+
     public User() {
     }
 
@@ -69,5 +72,13 @@ public class User {
 
     public void setHighestScore(Integer highestScore) {
         this.highestScore = highestScore;
+    }
+
+    public Integer getCoin() {
+        return coin;
+    }
+
+    public void setCoin(Integer coin) {
+        this.coin = coin;
     }
 }

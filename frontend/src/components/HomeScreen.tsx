@@ -2,10 +2,12 @@ import React, { useEffect, useRef } from 'react';
 import { Play, Settings, LogOut, Trophy, Zap, Crown } from 'lucide-react';
 import { Howl } from 'howler';
 import homeMusicSrc from '../assets/sounds/home.mp3';
+import coinImg from '../assets/coin.png';
 
 export interface User {
   username: string;
   highScore: number;
+  coin?: number; // Add coin field for coin balance
 }
 
 interface HomeScreenProps {
@@ -31,7 +33,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onPlayNow, onSettings, on
       volume: musicEnabled ? musicVolume : 0,
       html5: true,
     });
-    if (musicEnabled) {
+    if (musicEnabled && musicRef.current) {
       musicRef.current.play();
     }
     return () => {
@@ -89,12 +91,20 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onPlayNow, onSettings, on
         {/* User info */}
         {user && (
           <div className="mb-8 p-4 bg-black/50 rounded-lg border border-cyan-500/30 backdrop-blur-sm">
-            <div className="flex items-center justify-center gap-4 text-white">
+            <div className="flex flex-col md:flex-row items-center justify-center gap-4 text-white">
               <span className="text-cyan-400">Welcome back, {user.username}</span>
               <div className="flex items-center gap-2">
                 <Trophy className="w-5 h-5 text-yellow-400" />
                 <span className="text-yellow-400">Best: {user.highScore}</span>
               </div>
+              {/* Coin balance cyberpunk badge */}
+              {typeof user.coin === 'number' && (
+                <div className="flex items-center gap-2 bg-gradient-to-r from-yellow-400/30 to-cyan-400/30 border border-yellow-400/40 px-4 py-2 rounded-full shadow-lg animate-pulse">
+                  <img src={coinImg} alt="Coin" className="w-6 h-6 drop-shadow-glow animate-spin-slow" style={{ animationDuration: '2.5s' }} />
+                  <span className="text-yellow-300 font-extrabold text-lg tracking-wider neon-glow">{user.coin}</span>
+                  <span className="text-xs text-yellow-200 font-bold ml-1 tracking-widest">COINS</span>
+                </div>
+              )}
             </div>
           </div>
         )}
