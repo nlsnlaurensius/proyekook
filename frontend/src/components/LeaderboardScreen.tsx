@@ -42,7 +42,7 @@ const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ leaderboard, curr
     : 0;
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 via-purple-900 to-black relative overflow-hidden px-2 md:px-0">
       {/* Animated background grid and particles (match HomeScreen) */}
       <div className="absolute inset-0 opacity-20">
         <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 via-transparent to-purple-500/10"></div>
@@ -71,7 +71,7 @@ const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ leaderboard, curr
         ))}
       </div>
 
-      <div className="relative z-10 w-full max-w-2xl">
+      <div className="relative z-10 w-full max-w-2xl mx-auto">
         {/* Back button */}
         <button
           onClick={onBack}
@@ -82,7 +82,7 @@ const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ leaderboard, curr
         </button>
 
         {/* Leaderboard panel */}
-        <div className="bg-black/70 backdrop-blur-lg rounded-2xl border border-cyan-500/30 p-8 shadow-2xl">
+        <div className="bg-black/70 backdrop-blur-lg rounded-2xl border border-cyan-500/30 p-4 md:p-8 shadow-2xl">
           <div className="text-center mb-8">
             <div className="flex items-center justify-center mb-4">
               <div className="relative">

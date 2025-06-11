@@ -26,15 +26,15 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onBack }) => {
     e.preventDefault();
     setError(null);
     if (!usernameRegex.test(username)) {
-      setError('Username must be 3-20 characters, only letters, numbers, and _ allowed.');
+      setError('Username must be 3-20 characters long and can only contain letters, numbers, and underscores (_).');
       return;
     }
     if (!isLogin && !emailRegex.test(email)) {
-      setError('Invalid email address.');
+      setError('Please enter a valid email address (e.g., user@email.com).');
       return;
     }
     if (!passwordRegex.test(password)) {
-      setError('Password must be at least 6 characters, contain 1 uppercase letter, and 1 special symbol.');
+      setError('Password must be at least 6 characters, include at least 1 uppercase letter, and 1 special symbol (e.g., !@#$%).');
       return;
     }
     setLoading(true);
@@ -48,15 +48,23 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onBack }) => {
       } else {
         await apiRegister(username.trim(), email.trim(), password);
         setIsLogin(true);
+        setError('Registration successful! Please log in with your new account.');
       }
     } catch (err: any) {
-      setError(err.message || 'An error occurred. Please try again.');
+      // Show more specific error if available, otherwise show a clear fallback
+      if (err?.response?.data?.message) {
+        setError(`Error: ${err.response.data.message}`);
+      } else if (err?.message) {
+        setError(`Error: ${err.message}`);
+      } else {
+        setError('An unexpected error occurred. Please check your connection and try again.');
+      }
     }
     setLoading(false);
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center p-2 md:p-4 relative overflow-hidden">
       {/* Animated background grid and particles (match HomeScreen) */}
       <div className="absolute inset-0 opacity-20">
         <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 via-transparent to-purple-500/10"></div>
@@ -85,7 +93,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onBack }) => {
         ))}
       </div>
 
-      <div className="relative z-10 w-full max-w-md">
+      <div className="relative z-10 w-full max-w-md mx-auto">
         {/* Back button */}
         <button
           onClick={onBack}
@@ -96,7 +104,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onBack }) => {
         </button>
 
         {/* Login form */}
-        <div className="bg-black/70 backdrop-blur-lg rounded-2xl border border-cyan-500/30 p-8 shadow-2xl">
+        <div className="bg-black/70 backdrop-blur-lg rounded-2xl border border-cyan-500/30 p-4 md:p-8 shadow-2xl">
           <div className="text-center mb-8">
             <div className="flex items-center justify-center mb-4">
               <Zap className="w-10 h-10 text-cyan-400 animate-pulse" />

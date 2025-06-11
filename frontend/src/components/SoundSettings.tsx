@@ -27,7 +27,7 @@ const SoundSettings: React.FC<SoundSettingsProps> = ({
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center p-2 md:p-4 relative overflow-hidden">
       {/* Animated background grid and particles (match HomeScreen) */}
       <div className="absolute inset-0 opacity-20">
         <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 via-transparent to-purple-500/10"></div>
@@ -56,7 +56,7 @@ const SoundSettings: React.FC<SoundSettingsProps> = ({
         ))}
       </div>
 
-      <div className="relative z-10 w-full max-w-md">
+      <div className="relative z-10 w-full max-w-md mx-auto">
         {/* Back button */}
         <button
           onClick={onBack}
@@ -67,7 +67,7 @@ const SoundSettings: React.FC<SoundSettingsProps> = ({
         </button>
 
         {/* Settings panel */}
-        <div className="bg-black/70 backdrop-blur-lg rounded-2xl border border-cyan-500/30 p-8 shadow-2xl">
+        <div className="bg-black/70 backdrop-blur-lg rounded-2xl border border-cyan-500/30 p-4 md:p-8 shadow-2xl">
           <div className="text-center mb-8">
             <div className="flex items-center justify-center mb-4">
               <div className="relative">

@@ -84,7 +84,7 @@ const Shop: React.FC<ShopProps> = ({ userCoin, onBuy, shopSuccess }) => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 via-purple-900 to-black relative overflow-hidden px-2 md:px-0">
       {/* Notifikasi sukses pembelian */}
       {shopSuccess && (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-cyan-700 text-white px-6 py-3 rounded-xl shadow-lg text-lg animate-fade-in-out">
@@ -119,7 +119,7 @@ const Shop: React.FC<ShopProps> = ({ userCoin, onBuy, shopSuccess }) => {
         ))}
       </div>
 
-      <div className="relative z-10 w-full max-w-2xl">
+      <div className="relative z-10 w-full max-w-2xl mx-auto">
         {/* Back to Home button kiri atas */}
         <button
           onClick={() => navigate('/home')}
@@ -128,7 +128,7 @@ const Shop: React.FC<ShopProps> = ({ userCoin, onBuy, shopSuccess }) => {
           <ArrowLeft className="w-5 h-5" />
           <span>Back to Home</span>
         </button>
-        <div className="bg-black/80 p-6 rounded-2xl border border-cyan-500/30 w-full shadow-2xl mt-0">
+        <div className="bg-black/80 p-4 md:p-6 rounded-2xl border border-cyan-500/30 w-full shadow-2xl mt-0">
           <h2 className="text-3xl font-bold text-cyan-400 mb-4 text-center">Power Up Shop</h2>
           <p className="text-gray-300 mb-6 text-center">Use your coins to buy power-ups that will help you in the game!</p>
           <div className="flex flex-col gap-6">
