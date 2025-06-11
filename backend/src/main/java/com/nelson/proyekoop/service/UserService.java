@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -63,6 +64,14 @@ public class UserService {
             return convertToDTO(user);
         }
         throw new RuntimeException("User not found with id: " + userId);
+    }
+
+    public List<UserDTO> getLeaderboard() {
+        // Ambil 10 user dengan skor tertinggi
+        return userRepository.findTopUsersByHighestScore().stream()
+                .limit(10)
+                .map(this::convertToDTO)
+                .toList();
     }
 
     public User getEntityById(Long id) {

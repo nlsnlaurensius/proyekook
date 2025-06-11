@@ -4,10 +4,11 @@ import LoginScreen from './components/LoginScreen';
 import GameScreen from './components/GameScreen';
 import SoundSettings from './components/SoundSettings';
 import LeaderboardScreen from './components/LeaderboardScreen';
-import { login as apiLogin, getLeaderboard, getUserByUsername } from './utils/api';
+import Shop from './components/Shop';
+import { login as apiLogin, getLeaderboard, getUserByUsername, buyPowerUp } from './utils/api';
 import { playClick } from './utils/clickSound';
 
-export type Screen = 'home' | 'login' | 'game' | 'settings' | 'leaderboard';
+export type Screen = 'home' | 'login' | 'game' | 'settings' | 'leaderboard' | 'shop';
 
 export interface User {
   username: string;
@@ -29,6 +30,7 @@ function App() {
   const [musicVolume, setMusicVolume] = useState(0.7);
   const [sfxVolume, setSfxVolume] = useState(0.8);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [shopSuccess, setShopSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     // Load saved user data
@@ -50,10 +52,10 @@ function App() {
         const token = localStorage.getItem('neonRunnerToken') || undefined;
         const res = await getLeaderboard(token);
         const leaderboardData = res?.data || res?.payload || [];
-        setLeaderboard(leaderboardData.map((entry: any) => ({
+        setLeaderboard(leaderboardData.map((entry: any, idx: number) => ({
           username: entry.username,
-          score: entry.score,
-          rank: entry.rank,
+          score: entry.highestScore ?? entry.score ?? 0,
+          rank: idx + 1,
         })));
       } catch (e) {
         // fallback: empty leaderboard
@@ -124,10 +126,10 @@ function App() {
       const token = localStorage.getItem('neonRunnerToken') || undefined;
       const res = await getLeaderboard(token);
       const leaderboardData = res?.data || res?.payload || [];
-      setLeaderboard(leaderboardData.map((entry: any) => ({
+      setLeaderboard(leaderboardData.map((entry: any, idx: number) => ({
         username: entry.username,
-        score: entry.score,
-        rank: entry.rank,
+        score: entry.highestScore ?? entry.score ?? 0,
+        rank: idx + 1,
       })));
     } catch (e) {}
   };
@@ -163,6 +165,57 @@ function App() {
     }));
   };
 
+  // Handler pembelian power up
+  const handleBuyPowerUp = async (powerUp: any, onBuySuccess?: (powerUpId: number) => void) => {
+    if (!user || !user.id) return;
+    if ((user.coin || 0) < powerUp.price) {
+      setShopSuccess('Koin tidak cukup!');
+      setTimeout(() => setShopSuccess(null), 2000);
+      return;
+    }
+    try {
+      const token = localStorage.getItem('neonRunnerToken') || undefined;
+      await buyPowerUp(user.id, powerUp.id, token);
+      // Ambil user terbaru dari backend setelah pembelian
+      const res = await getUserByUsername(user.username, token);
+      const updatedUser = { ...user, ...res.data, highScore: user.highScore };
+      setUser(updatedUser);
+      localStorage.setItem('neonRunnerUser', JSON.stringify(updatedUser));
+      setShopSuccess(`Berhasil membeli power up: ${powerUp.name}`);
+      if (onBuySuccess) onBuySuccess(powerUp.id); // Optimistically update UI
+      setTimeout(() => setShopSuccess(null), 2000);
+    } catch (e: any) {
+      setShopSuccess(e.message || 'Gagal membeli power up');
+      setTimeout(() => setShopSuccess(null), 2000);
+    }
+  };
+
+  useEffect(() => {
+    const handleShopBack = () => setCurrentScreen('home');
+    window.addEventListener('shopBackToHome', handleShopBack);
+    return () => window.removeEventListener('shopBackToHome', handleShopBack);
+  }, []);
+
+  // Tambahkan polling coin user setiap 2 detik jika sudah login
+  useEffect(() => {
+    if (!user || !user.username) return;
+    let interval: NodeJS.Timeout;
+    const fetchUserCoin = async () => {
+      try {
+        const token = localStorage.getItem('neonRunnerToken') || undefined;
+        const res = await getUserByUsername(user.username, token);
+        if (res && (res.data || res.payload)) {
+          const newUser = { ...user, ...(res.data || res.payload) };
+          setUser(newUser);
+          localStorage.setItem('neonRunnerUser', JSON.stringify(newUser));
+        }
+      } catch {}
+    };
+    fetchUserCoin();
+    interval = setInterval(fetchUserCoin, 2000);
+    return () => clearInterval(interval);
+  }, [user?.username]);
+
   const renderScreen = () => {
     switch (currentScreen) {
       case 'home':
@@ -175,6 +228,7 @@ function App() {
             onLogout={handleLogout}
             musicEnabled={soundEnabled}
             musicVolume={musicVolume}
+            onShop={() => setCurrentScreen('shop')}
           />
         );
       case 'login':
@@ -212,6 +266,14 @@ function App() {
             leaderboard={leaderboard}
             currentUser={user}
             onBack={() => setCurrentScreen('home')}
+          />
+        );
+      case 'shop':
+        return (
+          <Shop
+            userCoin={user?.coin || 0}
+            onBuy={handleBuyPowerUp}
+            shopSuccess={shopSuccess}
           />
         );
       default:

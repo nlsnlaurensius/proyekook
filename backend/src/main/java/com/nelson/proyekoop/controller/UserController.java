@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -47,6 +48,14 @@ public class UserController {
     public ResponseEntity<ApiResponse<UserDTO>> getUserByUsername(@PathVariable String username) {
         UserDTO userDTO = userService.getUserByUsername(username);
         ApiResponse<UserDTO> response = new ApiResponse<>(true, "User fetched successfully", userDTO);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/leaderboard")
+    public ResponseEntity<ApiResponse<List<UserDTO>>> getLeaderboard() {
+        // Ambil 10 user dengan skor tertinggi
+        List<UserDTO> leaderboard = userService.getLeaderboard();
+        ApiResponse<List<UserDTO>> response = new ApiResponse<>(true, "Leaderboard fetched successfully", leaderboard);
         return ResponseEntity.ok(response);
     }
 }

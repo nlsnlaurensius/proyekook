@@ -83,3 +83,21 @@ export async function getPowerUps(token?: string) {
   if (!res.ok) throw new Error('Failed to fetch powerups');
   return res.json();
 }
+
+export async function buyPowerUp(userId: number, powerUpId: number, token?: string) {
+  const res = await fetch(`/api/powerups/buy/${userId}/${powerUpId}`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  const data = await res.json();
+  if (!res.ok || data.success === false) throw new Error(data.message || 'Gagal membeli power up');
+  return data;
+}
+
+export async function getUserOwnedPowerUps(userId: number, token?: string) {
+  const res = await fetch(`${BASE_URL}/powerups/owned/${userId}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {}
+  });
+  if (!res.ok) throw new Error('Failed to fetch user owned powerups');
+  return res.json();
+}

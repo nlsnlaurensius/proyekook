@@ -19,9 +19,10 @@ interface HomeScreenProps {
   // Add music control props
   musicEnabled?: boolean;
   musicVolume?: number;
+  onShop: () => void; // Tambahkan prop untuk Shop
 }
 
-const HomeScreen: React.FC<HomeScreenProps> = ({ user, onPlayNow, onSettings, onLeaderboard, onLogout, musicEnabled = true, musicVolume = 0.7 }) => {
+const HomeScreen: React.FC<HomeScreenProps> = ({ user, onPlayNow, onSettings, onLeaderboard, onLogout, musicEnabled = true, musicVolume = 0.7, onShop }) => {
   const musicRef = useRef<Howl | null>(null);
   useEffect(() => {
     if (musicRef.current) {
@@ -130,6 +131,17 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onPlayNow, onSettings, on
             <div className="flex items-center justify-center gap-3">
               <Crown className="w-5 h-5 text-yellow-400 group-hover:animate-pulse" />
               <span>Leaderboard</span>
+            </div>
+          </button>
+
+          {/* Tombol Shop */}
+          <button
+            onClick={onShop}
+            className="group w-full max-w-md mx-auto block px-8 py-3 bg-black/50 text-white font-semibold rounded-lg border border-cyan-500/50 hover:border-cyan-400 hover:shadow-cyan-400/30 hover:shadow-lg transition-all duration-300 backdrop-blur-sm"
+          >
+            <div className="flex items-center justify-center gap-3">
+              <Zap className="w-5 h-5 text-cyan-400 group-hover:animate-pulse" />
+              <span>Shop</span>
             </div>
           </button>
 

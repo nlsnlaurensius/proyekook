@@ -57,24 +57,31 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onBack }) => {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Animated background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-purple-900/50 via-blue-900/30 to-black"></div>
-      
-      {/* Floating elements */}
+      {/* Animated background grid and particles (match HomeScreen) */}
+      <div className="absolute inset-0 opacity-20">
+        <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 via-transparent to-purple-500/10"></div>
+        <div className="grid grid-cols-12 grid-rows-12 h-full w-full">
+          {Array.from({ length: 144 }).map((_, i) => (
+            <div
+              key={i}
+              className="border border-cyan-500/20 animate-pulse"
+              style={{ animationDelay: `${(i * 50) % 3000}ms` }}
+            ></div>
+          ))}
+        </div>
+      </div>
       <div className="absolute inset-0 pointer-events-none">
-        {Array.from({ length: 15 }).map((_, i) => (
+        {Array.from({ length: 20 }).map((_, i) => (
           <div
             key={i}
-            className="absolute animate-float"
+            className="absolute w-1 h-1 bg-cyan-400 rounded-full animate-ping opacity-60"
             style={{
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 5}s`,
-              animationDuration: `${3 + Math.random() * 2}s`
+              animationDelay: `${Math.random() * 3}s`,
+              animationDuration: `${2 + Math.random() * 2}s`
             }}
-          >
-            <div className="w-2 h-2 bg-cyan-400/30 rounded-full blur-sm"></div>
-          </div>
+          ></div>
         ))}
       </div>
 

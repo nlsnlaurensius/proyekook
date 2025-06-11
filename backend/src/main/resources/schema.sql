@@ -39,6 +39,17 @@ CREATE TABLE game_session_power_ups (
     FOREIGN KEY (power_up_id) REFERENCES power_ups(id)
 );
 
+-- Table to track user-owned power-ups and their quantities
+CREATE TABLE IF NOT EXISTS user_power_ups (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    power_up_id INTEGER NOT NULL,
+    quantity INTEGER NOT NULL DEFAULT 0,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (power_up_id) REFERENCES power_ups(id),
+    UNIQUE (user_id, power_up_id)
+);
+
 -- Create indexes for better performance
 CREATE INDEX idx_game_sessions_user_id ON game_sessions(user_id);
 CREATE INDEX idx_game_sessions_score ON game_sessions(score);

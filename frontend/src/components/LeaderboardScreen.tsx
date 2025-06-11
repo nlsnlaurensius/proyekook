@@ -43,24 +43,31 @@ const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ leaderboard, curr
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden">
-      {/* Animated background */}
+      {/* Animated background grid and particles (match HomeScreen) */}
       <div className="absolute inset-0 opacity-20">
-        <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/10 via-cyan-500/10 to-purple-500/10"></div>
-        
-        {/* Floating crown particles */}
-        {Array.from({ length: 8 }).map((_, i) => (
+        <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 via-transparent to-purple-500/10"></div>
+        <div className="grid grid-cols-12 grid-rows-12 h-full w-full">
+          {Array.from({ length: 144 }).map((_, i) => (
+            <div
+              key={i}
+              className="border border-cyan-500/20 animate-pulse"
+              style={{ animationDelay: `${(i * 50) % 3000}ms` }}
+            ></div>
+          ))}
+        </div>
+      </div>
+      <div className="absolute inset-0 pointer-events-none">
+        {Array.from({ length: 20 }).map((_, i) => (
           <div
             key={i}
-            className="absolute animate-float opacity-30"
+            className="absolute w-1 h-1 bg-cyan-400 rounded-full animate-ping opacity-60"
             style={{
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 5}s`,
-              animationDuration: `${4 + Math.random() * 2}s`
+              animationDelay: `${Math.random() * 3}s`,
+              animationDuration: `${2 + Math.random() * 2}s`
             }}
-          >
-            <Crown className="w-4 h-4 text-yellow-400" />
-          </div>
+          ></div>
         ))}
       </div>
 
