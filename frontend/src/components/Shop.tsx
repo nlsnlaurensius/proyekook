@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getPowerUps, getUserOwnedPowerUps } from '../utils/api';
 import doublecoinIcon from '../assets/powerup/doublecoin.svg';
 import doublexpIcon from '../assets/powerup/doublexp.svg';
@@ -29,6 +30,7 @@ const Shop: React.FC<ShopProps> = ({ userCoin, onBuy, shopSuccess }) => {
   const [userPowerUps, setUserPowerUps] = useState<Record<number, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   // Fetch all power ups
   useEffect(() => {
@@ -40,7 +42,7 @@ const Shop: React.FC<ShopProps> = ({ userCoin, onBuy, shopSuccess }) => {
         const res = await getPowerUps(token);
         setPowerUps(res.data || res.payload || []);
       } catch (e: any) {
-        setError('Failed to fetch power-up data');
+        setError('Failed to fetch power-up data.');
       }
       setLoading(false);
     };
@@ -120,7 +122,7 @@ const Shop: React.FC<ShopProps> = ({ userCoin, onBuy, shopSuccess }) => {
       <div className="relative z-10 w-full max-w-2xl">
         {/* Back to Home button kiri atas */}
         <button
-          onClick={() => window.dispatchEvent(new CustomEvent('shopBackToHome'))}
+          onClick={() => navigate('/home')}
           className="flex items-center gap-2 text-gray-300 hover:text-cyan-400 mb-8 transition-colors duration-300"
         >
           <ArrowLeft className="w-5 h-5" />

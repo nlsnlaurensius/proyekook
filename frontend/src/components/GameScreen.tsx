@@ -82,6 +82,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
   const [shieldTimer, setShieldTimer] = useState(0);
   const [shieldDuration, setShieldDuration] = useState(5); // default duration (seconds)
   const [shieldPowerUpId, setShieldPowerUpId] = useState<number | null>(null);
+  const [countdownResume, setCountdownResume] = useState<number | null>(null);
 
   // Sinkronkan ke parent jika berubah (opsional, jika ingin update ke parent tambahkan callback di props)
   useEffect(() => {
@@ -279,7 +280,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
         await submitGameSession(userId, { score: finalScore, coinsCollected: coinCount }, token);
       }
     } catch (err: any) {
-      setSubmitError('Gagal submit skor ke server');
+      setSubmitError('Failed to submit score to server.');
     }
     setSubmitting(false);
     onGameOver(finalScore, coinCount); // Pass both score and coinsCollected
@@ -448,6 +449,21 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [jump, duck, gameState]);
+
+  // Handler untuk resume dari pause dengan countdown
+  const handleResumeWithCountdown = () => {
+    setCountdownResume(3);
+  };
+  useEffect(() => {
+    if (countdownResume === null) return;
+    if (countdownResume > 0) {
+      const timer = setTimeout(() => setCountdownResume((c) => (c !== null ? c - 1 : null)), 1000);
+      return () => clearTimeout(timer);
+    } else if (countdownResume === 0) {
+      setCountdownResume(null);
+      setGameState('playing');
+    }
+  }, [countdownResume]);
 
   // Game loop
   useEffect(() => {
@@ -791,6 +807,28 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
     return () => clearInterval(interval);
   }, [shieldActive]);
 
+  // Warn user before leaving/refreshing if game is still running
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (gameState === 'playing') {
+        e.preventDefault();
+        e.returnValue = 'Your game session will not be saved if you leave or reload the page.';
+        return e.returnValue;
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [gameState]);
+
+  // Handler konfirmasi keluar (back to home/menu) saat game masih berjalan
+  const handleBackWithConfirm = useCallback(() => {
+    if (gameState === 'playing') {
+      const confirmExit = window.confirm('Your game session will not be saved if you leave now. Are you sure you want to return to the menu?');
+      if (!confirmExit) return;
+    }
+    onBack();
+  }, [gameState, onBack]);
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-900 via-blue-900 to-black relative overflow-hidden">
       {/* Game UI */}
@@ -991,15 +1029,24 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
       </div>
 
       {/* Pause screen */}
-      {gameState === 'paused' && (
+      {gameState === 'paused' && countdownResume === null && (
         <PauseScreen
-          onResume={() => setGameState('playing')}
-          onBack={onBack}
+          onResume={handleResumeWithCountdown}
+          onBack={handleBackWithConfirm}
           soundEnabled={soundEnabled}
           sfxVolume={sfxVolume}
           musicVolume={musicVolume}
           onSoundSettingsChange={handleSoundSettingsChange}
+          showExitWarning={true}
         />
+      )}
+      {/* Countdown overlay saat resume dari pause */}
+      {countdownResume !== null && (
+        <div className="absolute inset-0 flex items-center justify-center z-50 bg-black/70 backdrop-blur-[2px]">
+          <div className="text-7xl font-extrabold text-cyan-300 drop-shadow-lg animate-pulse">
+            {countdownResume === 0 ? 'GO!' : countdownResume}
+          </div>
+        </div>
       )}
       {/* Game Over screen */}
       {gameState === 'gameOver' && (
@@ -1014,30 +1061,36 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
       )}
 
       {/* Power Up Bar */}
-      <div className="absolute left-4 top-4 z-30 flex flex-col gap-3">
+      <div className="absolute left-4 top-4 z-30 flex flex-col gap-5">
         {/* Double Coin Power Up */}
-        <div className="flex flex-col items-center">
-          <div className="relative flex items-center gap-2 bg-gray-900/80 border border-cyan-500/40 rounded-xl px-4 py-3 shadow-lg min-w-[110px]">
-            <img src={doublecoinIcon} alt="Double Coin" className="w-8 h-8" />
-            <span className="text-white font-bold text-xl ml-2">{doubleCoinPowerUpId ? userPowerUps[doubleCoinPowerUpId] || 0 : 0}</span>
+        <div className="relative flex items-center justify-center">
+          <div className="bg-[#181c2f] rounded-2xl shadow-xl border-2 border-cyan-400/60 w-20 h-20 flex items-center justify-center relative">
+            <img src={doublecoinIcon} alt="Double Coin" className="w-12 h-12" />
+            <div className="absolute -bottom-2 -right-2 bg-cyan-400 rounded-full w-8 h-8 flex items-center justify-center border-4 border-[#181c2f] text-white font-bold text-lg shadow-md">
+              {doubleCoinPowerUpId ? userPowerUps[doubleCoinPowerUpId] || 0 : 0}
+            </div>
           </div>
-          <div className="mt-1 text-cyan-300 text-xs font-semibold">Press 1</div>
+          <span className="ml-4 text-cyan-300 text-xs font-semibold">Press 1</span>
         </div>
         {/* Double XP Power Up */}
-        <div className="flex flex-col items-center mt-2">
-          <div className="relative flex items-center gap-2 bg-gray-900/80 border border-yellow-400/40 rounded-xl px-4 py-3 shadow-lg min-w-[110px]">
-            <img src={doublexpIcon} alt="Double XP" className="w-8 h-8" />
-            <span className="text-white font-bold text-xl ml-2">{doubleXpPowerUpId ? userPowerUps[doubleXpPowerUpId] || 0 : 0}</span>
+        <div className="relative flex items-center justify-center">
+          <div className="bg-[#181c2f] rounded-2xl shadow-xl border-2 border-yellow-400/60 w-20 h-20 flex items-center justify-center relative">
+            <img src={doublexpIcon} alt="Double XP" className="w-12 h-12" />
+            <div className="absolute -bottom-2 -right-2 bg-yellow-400 rounded-full w-8 h-8 flex items-center justify-center border-4 border-[#181c2f] text-white font-bold text-lg shadow-md">
+              {doubleXpPowerUpId ? userPowerUps[doubleXpPowerUpId] || 0 : 0}
+            </div>
           </div>
-          <div className="mt-1 text-yellow-200 text-xs font-semibold">Press 2</div>
+          <span className="ml-4 text-yellow-200 text-xs font-semibold">Press 2</span>
         </div>
         {/* Shield Power Up */}
-        <div className="flex flex-col items-center mt-2">
-          <div className="relative flex items-center gap-2 bg-gray-900/80 border border-blue-400/40 rounded-xl px-4 py-3 shadow-lg min-w-[110px]">
-            <img src={shieldIcon} alt="Shield" className="w-8 h-8" />
-            <span className="text-white font-bold text-xl ml-2">{shieldQty}</span>
+        <div className="relative flex items-center justify-center">
+          <div className="bg-[#181c2f] rounded-2xl shadow-xl border-2 border-blue-400/60 w-20 h-20 flex items-center justify-center relative">
+            <img src={shieldIcon} alt="Shield" className="w-12 h-12" />
+            <div className="absolute -bottom-2 -right-2 bg-blue-400 rounded-full w-8 h-8 flex items-center justify-center border-4 border-[#181c2f] text-white font-bold text-lg shadow-md">
+              {shieldQty}
+            </div>
           </div>
-          <div className="mt-1 text-blue-200 text-xs font-semibold">Press 3</div>
+          <span className="ml-4 text-blue-200 text-xs font-semibold">Press 3</span>
         </div>
       </div>
     </div>

@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
 import HomeScreen from './components/HomeScreen';
 import LoginScreen from './components/LoginScreen';
 import GameScreen from './components/GameScreen';
 import SoundSettings from './components/SoundSettings';
 import LeaderboardScreen from './components/LeaderboardScreen';
 import Shop from './components/Shop';
+import NotFoundPage from './components/NotFoundPage';
 import { login as apiLogin, getLeaderboard, getUserByUsername, buyPowerUp } from './utils/api';
 import { playClick } from './utils/clickSound';
 
@@ -24,13 +26,14 @@ export interface LeaderboardEntry {
 }
 
 function App() {
-  const [currentScreen, setCurrentScreen] = useState<Screen>('home');
   const [user, setUser] = useState<User | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [musicVolume, setMusicVolume] = useState(0.7);
   const [sfxVolume, setSfxVolume] = useState(0.8);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [shopSuccess, setShopSuccess] = useState<string | null>(null);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Load saved user data
@@ -66,15 +69,14 @@ function App() {
   }, []);
 
   useEffect(() => {
-    function handleGlobalClick(e: MouseEvent) {
-      // Deteksi jika sedang di GameScreen dan bukan pause
-      if (currentScreen === 'game') return;
+    function handleGlobalClick() {
+      // Only play click if not in game screen
       if (!soundEnabled) return;
       playClick(sfxVolume);
     }
     window.addEventListener('click', handleGlobalClick);
     return () => window.removeEventListener('click', handleGlobalClick);
-  }, [currentScreen, soundEnabled, sfxVolume]);
+  }, [soundEnabled, sfxVolume]);
 
   const handleLogin = async (username: string, password?: string) => {
     try {
@@ -97,12 +99,12 @@ function App() {
         if (token) localStorage.setItem('neonRunnerToken', token);
         localStorage.setItem('neonRunnerUser', JSON.stringify(user));
         setUser(user);
-        setCurrentScreen('home');
+        navigate('/home');
       } else {
-        alert('Login gagal: Data user tidak ditemukan.');
+        alert('Login failed: User data not found.');
       }
     } catch (e: any) {
-      alert(e.message || 'Login failed');
+      alert(e.message || 'Login failed. Please try again.');
     }
   };
 
@@ -110,10 +112,10 @@ function App() {
     setUser(null);
     localStorage.removeItem('neonRunnerUser');
     localStorage.removeItem('neonRunnerToken');
-    setCurrentScreen('home');
+    navigate('/home');
   };
 
-  const updateHighScore = async (score: number, coinsCollected?: number): Promise<void> => {
+  const updateHighScore = async (score: number): Promise<void> => {
     // Update highScore di local state jika perlu
     if (user && score > user.highScore) {
       const updatedUser = { ...user, highScore: score };
@@ -136,9 +138,9 @@ function App() {
 
   const handlePlayNow = () => {
     if (user) {
-      setCurrentScreen('game');
+      navigate('/game');
     } else {
-      setCurrentScreen('login');
+      navigate('/login');
     }
   };
 
@@ -169,7 +171,7 @@ function App() {
   const handleBuyPowerUp = async (powerUp: any, onBuySuccess?: (powerUpId: number) => void) => {
     if (!user || !user.id) return;
     if ((user.coin || 0) < powerUp.price) {
-      setShopSuccess('Koin tidak cukup!');
+      setShopSuccess('Not enough coins!');
       setTimeout(() => setShopSuccess(null), 2000);
       return;
     }
@@ -181,25 +183,19 @@ function App() {
       const updatedUser = { ...user, ...res.data, highScore: user.highScore };
       setUser(updatedUser);
       localStorage.setItem('neonRunnerUser', JSON.stringify(updatedUser));
-      setShopSuccess(`Berhasil membeli power up: ${powerUp.name}`);
+      setShopSuccess(`Successfully purchased power-up: ${powerUp.name}`);
       if (onBuySuccess) onBuySuccess(powerUp.id); // Optimistically update UI
       setTimeout(() => setShopSuccess(null), 2000);
     } catch (e: any) {
-      setShopSuccess(e.message || 'Gagal membeli power up');
+      setShopSuccess(e.message || 'Failed to purchase power-up.');
       setTimeout(() => setShopSuccess(null), 2000);
     }
   };
 
-  useEffect(() => {
-    const handleShopBack = () => setCurrentScreen('home');
-    window.addEventListener('shopBackToHome', handleShopBack);
-    return () => window.removeEventListener('shopBackToHome', handleShopBack);
-  }, []);
-
   // Tambahkan polling coin user setiap 2 detik jika sudah login
   useEffect(() => {
     if (!user || !user.username) return;
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval>;
     const fetchUserCoin = async () => {
       try {
         const token = localStorage.getItem('neonRunnerToken') || undefined;
@@ -216,74 +212,72 @@ function App() {
     return () => clearInterval(interval);
   }, [user?.username]);
 
-  const renderScreen = () => {
-    switch (currentScreen) {
-      case 'home':
-        return (
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-black">
+      <Routes>
+        <Route path="/" element={<Navigate to="/home" replace />} />
+        <Route path="/home" element={
           <HomeScreen
             user={user}
             onPlayNow={handlePlayNow}
-            onSettings={() => setCurrentScreen('settings')}
-            onLeaderboard={() => setCurrentScreen('leaderboard')}
+            onSettings={() => navigate('/settings')}
+            onLeaderboard={() => navigate('/leaderboard')}
             onLogout={handleLogout}
             musicEnabled={soundEnabled}
             musicVolume={musicVolume}
-            onShop={() => setCurrentScreen('shop')}
+            onShop={() => navigate('/shop')}
           />
-        );
-      case 'login':
-        return (
+        } />
+        <Route path="/login" element={
           <LoginScreen
             onLogin={handleLogin}
-            onBack={() => setCurrentScreen('home')}
+            onBack={() => navigate('/home')}
           />
-        );
-      case 'game':
-        return (
-          <GameScreen
-            user={user!}
-            onGameOver={async (score: number, coinsCollected: number) => { await updateHighScore(score, coinsCollected); }}
-            onBack={() => setCurrentScreen('home')}
-            soundEnabled={soundEnabled}
-            sfxVolume={sfxVolume}
-            musicVolume={musicVolume}
-            onSoundSettingsChange={handleSoundSettingsChange}
-          />
-        );
-      case 'settings':
-        return (
+        } />
+        <Route path="/game" element={
+          user ? (
+            <GameScreen
+              user={user}
+              onGameOver={async (score: number) => { await updateHighScore(score); }}
+              onBack={() => navigate('/home')}
+              soundEnabled={soundEnabled}
+              sfxVolume={sfxVolume}
+              musicVolume={musicVolume}
+              onSoundSettingsChange={handleSoundSettingsChange}
+            />
+          ) : (
+            <Navigate to="/home" replace />
+          )
+        } />
+        <Route path="/settings" element={
           <SoundSettings
             soundEnabled={soundEnabled}
             musicVolume={musicVolume}
             sfxVolume={sfxVolume}
             onSave={saveSoundSettings}
-            onBack={() => setCurrentScreen('home')}
+            onBack={() => navigate('/home')}
           />
-        );
-      case 'leaderboard':
-        return (
+        } />
+        <Route path="/leaderboard" element={
           <LeaderboardScreen
             leaderboard={leaderboard}
             currentUser={user}
-            onBack={() => setCurrentScreen('home')}
+            onBack={() => navigate('/home')}
           />
-        );
-      case 'shop':
-        return (
-          <Shop
-            userCoin={user?.coin || 0}
-            onBuy={handleBuyPowerUp}
-            shopSuccess={shopSuccess}
-          />
-        );
-      default:
-        return null;
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-black">
-      {renderScreen()}
+        } />
+        <Route path="/shop" element={
+          user ? (
+            <Shop
+              userCoin={user?.coin || 0}
+              onBuy={handleBuyPowerUp}
+              shopSuccess={shopSuccess}
+            />
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        } />
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
     </div>
   );
 }

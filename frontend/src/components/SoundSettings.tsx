@@ -26,35 +26,6 @@ const SoundSettings: React.FC<SoundSettingsProps> = ({
     onBack();
   };
 
-  const testSound = (type: 'music' | 'sfx') => {
-    if (!localSoundEnabled) return;
-
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-
-    if (type === 'music') {
-      // Play a musical chord progression
-      oscillator.frequency.setValueAtTime(261.63, audioContext.currentTime); // C4
-      oscillator.frequency.setValueAtTime(329.63, audioContext.currentTime + 0.2); // E4
-      oscillator.frequency.setValueAtTime(392.00, audioContext.currentTime + 0.4); // G4
-      gainNode.gain.setValueAtTime(localMusicVolume * 0.1, audioContext.currentTime);
-    } else {
-      // Play a sound effect
-      oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
-      oscillator.frequency.exponentialRampToValueAtTime(880, audioContext.currentTime + 0.1);
-      gainNode.gain.setValueAtTime(localSfxVolume * 0.1, audioContext.currentTime);
-    }
-
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.6);
-
-    oscillator.start(audioContext.currentTime);
-    oscillator.stop(audioContext.currentTime + 0.6);
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
       {/* Animated background grid and particles (match HomeScreen) */}
@@ -142,12 +113,6 @@ const SoundSettings: React.FC<SoundSettingsProps> = ({
                   <Music className="w-6 h-6 text-purple-400" />
                   <span className="text-white font-semibold">Music Volume</span>
                 </div>
-                <button
-                  onClick={() => testSound('music')}
-                  className="px-3 py-1 bg-purple-600/30 text-purple-300 rounded text-sm hover:bg-purple-600/50 transition-colors"
-                >
-                  Test
-                </button>
               </div>
               
               <div className="relative">
@@ -177,12 +142,6 @@ const SoundSettings: React.FC<SoundSettingsProps> = ({
                   <Zap className="w-6 h-6 text-cyan-400" />
                   <span className="text-white font-semibold">Sound Effects</span>
                 </div>
-                <button
-                  onClick={() => testSound('sfx')}
-                  className="px-3 py-1 bg-cyan-600/30 text-cyan-300 rounded text-sm hover:bg-cyan-600/50 transition-colors"
-                >
-                  Test
-                </button>
               </div>
               
               <div className="relative">

@@ -7,6 +7,7 @@ interface PauseScreenProps {
   sfxVolume: number;
   musicVolume: number;
   onSoundSettingsChange: (soundEnabled: boolean, musicVolume: number, sfxVolume: number) => void;
+  showExitWarning?: boolean;
 }
 
 const PauseScreen: React.FC<PauseScreenProps> = ({
@@ -16,6 +17,7 @@ const PauseScreen: React.FC<PauseScreenProps> = ({
   sfxVolume,
   musicVolume,
   onSoundSettingsChange,
+  showExitWarning = false,
 }) => {
   // Local state for UI, but always sync with props
   const [localSoundEnabled, setLocalSoundEnabled] = useState(soundEnabled);
@@ -47,6 +49,13 @@ const PauseScreen: React.FC<PauseScreenProps> = ({
   const handleMusicVolume = (v: number) => {
     setLocalMusicVolume(v);
     onSoundSettingsChange(localSoundEnabled, v, localSfxVolume);
+  };
+  const handleBackClick = () => {
+    if (showExitWarning) {
+      const confirmExit = window.confirm('Changes you made may not be saved.');
+      if (!confirmExit) return;
+    }
+    onBack();
   };
 
   return (
@@ -106,7 +115,7 @@ const PauseScreen: React.FC<PauseScreenProps> = ({
           </div>
         </div>
         <button
-          onClick={onBack}
+          onClick={handleBackClick}
           className="w-full px-6 py-3 bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-bold rounded-lg shadow-md hover:shadow-cyan-400/40 hover:scale-105 transition-all duration-200"
         >
           Back to Menu

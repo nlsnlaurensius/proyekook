@@ -26,15 +26,15 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onBack }) => {
     e.preventDefault();
     setError(null);
     if (!usernameRegex.test(username)) {
-      setError('Username harus 3-20 karakter, hanya huruf, angka, dan _');
+      setError('Username must be 3-20 characters, only letters, numbers, and _ allowed.');
       return;
     }
     if (!isLogin && !emailRegex.test(email)) {
-      setError('Email tidak valid');
+      setError('Invalid email address.');
       return;
     }
     if (!passwordRegex.test(password)) {
-      setError('Password minimal 6 karakter, 1 huruf besar, dan 1 simbol unik');
+      setError('Password must be at least 6 characters, contain 1 uppercase letter, and 1 special symbol.');
       return;
     }
     setLoading(true);
@@ -50,7 +50,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onBack }) => {
         setIsLogin(true);
       }
     } catch (err: any) {
-      setError(err.message || 'Failed');
+      setError(err.message || 'An error occurred. Please try again.');
     }
     setLoading(false);
   };

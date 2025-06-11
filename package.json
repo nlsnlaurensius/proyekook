@@ -1,5 +1,8 @@
 {
   "devDependencies": {
     "@types/howler": "^2.2.12"
+  },
+  "dependencies": {
+    "react-router-dom": "^7.6.2"
   }
 }

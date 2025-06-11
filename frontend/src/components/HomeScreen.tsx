@@ -1,8 +1,12 @@
-import React, { useEffect, useRef } from 'react';
-import { Play, Settings, LogOut, Trophy, Zap, Crown } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Play, Settings, LogOut, Crown, ShoppingBag } from 'lucide-react';
 import { Howl } from 'howler';
 import homeMusicSrc from '../assets/sounds/home.mp3';
 import coinImg from '../assets/coin.png';
+
+const walkFrames = Object.values(
+  import.meta.glob('../assets/walk/*.png', { eager: true, as: 'url' })
+).sort();
 
 export interface User {
   username: string;
@@ -24,6 +28,7 @@ interface HomeScreenProps {
 
 const HomeScreen: React.FC<HomeScreenProps> = ({ user, onPlayNow, onSettings, onLeaderboard, onLogout, musicEnabled = true, musicVolume = 0.7, onShop }) => {
   const musicRef = useRef<Howl | null>(null);
+  const [frame, setFrame] = useState(0);
   useEffect(() => {
     if (musicRef.current) {
       musicRef.current.unload();
@@ -42,11 +47,88 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onPlayNow, onSettings, on
       musicRef.current?.unload();
     };
   }, [musicEnabled, musicVolume]);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setFrame(f => (f + 1) % walkFrames.length);
+    }, 60); // lebih cepat
+    return () => clearInterval(interval);
+  }, []);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden">
-      {/* Animated background grid */}
-      <div className="absolute inset-0 opacity-20">
+    <div className="min-h-screen w-full bg-gradient-to-br from-gray-900 via-purple-900 to-black relative overflow-hidden flex items-center justify-center">
+      {/* Top left: user info (username + highscore in one box) */}
+      <div className="absolute top-8 left-8 z-20 flex flex-col items-start gap-3">
+        {user && (
+          <div className="flex flex-col gap-2 bg-black/70 border-2 border-cyan-400/40 rounded-2xl px-6 py-4 shadow-xl min-w-[220px]">
+            <span className="font-bold text-cyan-200 text-xl tracking-wide drop-shadow">{user.username}</span>
+            <div className="flex items-center gap-2 mt-1">
+              <Crown className="w-6 h-6 text-yellow-400" />
+              <span className="text-yellow-300 font-bold text-lg">High Score: {user.highScore}</span>
+            </div>
+          </div>
+        )}
+        {/* Coin balance as a separate neon card below profile */}
+        {user && (
+          <div className="flex items-center gap-2 mt-2 bg-black/70 border-2 border-yellow-400/40 rounded-xl px-4 py-2 shadow-lg min-w-[120px]">
+            <img src={coinImg} alt="Coin" className="w-6 h-6 drop-shadow-glow" />
+            <span className="text-yellow-200 font-bold text-lg">{user.coin ?? 0}</span>
+          </div>
+        )}
+      </div>
+      {/* Top right: settings (animated gear) */}
+      <div className="absolute top-8 right-8 z-20">
+        <button onClick={onSettings} className="bg-black/60 p-4 rounded-full border border-cyan-400/30 shadow-lg hover:bg-cyan-900/30 transition">
+          <Settings className="w-10 h-10 text-cyan-300 animate-spin-slow" style={{ animationDuration: '2.5s' }} />
+        </button>
+      </div>
+      {/* Top center: Neon Runner title (lowered for better balance) */}
+      <div className="absolute left-1/2" style={{ top: '72px', transform: 'translateX(-50%)' }}>
+        <h1 className="text-6xl md:text-7xl font-extrabold text-cyan-300 drop-shadow-lg mb-4 neon-glow animate-pulse select-none">
+          NEON RUNNER
+        </h1>
+      </div>
+      {/* Right: Leaderboard and Shop vertically aligned, same size */}
+      <div className="absolute right-8 top-1/2 -translate-y-1/2 flex flex-col items-center gap-8 z-20">
+        <button onClick={onLeaderboard} className="flex flex-col items-center group bg-black/60 rounded-2xl border-2 border-yellow-400/30 shadow-xl hover:scale-105 transition w-44 h-40 justify-center">
+          <Crown className="w-14 h-14 text-yellow-400 group-hover:scale-110 transition" />
+          <span className="mt-2 text-yellow-200 font-bold text-lg drop-shadow">Leaderboard</span>
+        </button>
+        {user && (
+          <button onClick={onShop} className="flex flex-col items-center group bg-black/60 rounded-2xl border-2 border-cyan-400/30 shadow-xl hover:scale-105 transition w-44 h-40 justify-center">
+            <ShoppingBag className="w-14 h-14 text-cyan-300 group-hover:scale-110 transition" />
+            <span className="mt-2 text-cyan-200 font-bold text-lg drop-shadow">Shop</span>
+          </button>
+        )}
+      </div>
+      {/* Bottom left: Logout button */}
+      {user && (
+        <div className="absolute bottom-8 left-8 z-20">
+          <button onClick={onLogout} className="bg-black/60 px-8 py-4 rounded-xl border-2 border-red-400/30 text-red-300 font-semibold hover:bg-red-900/30 transition flex items-center gap-3 shadow-lg text-lg">
+            <LogOut className="w-6 h-6" />
+            Logout
+          </button>
+        </div>
+      )}
+      {/* Center: walk animation (no circle, larger) */}
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center">
+        <div className="w-[420px] h-[420px] md:w-[520px] md:h-[520px] flex items-center justify-center">
+          <img
+            src={walkFrames[frame] as string}
+            alt="Neon Runner Walk Animation"
+            className="w-full h-full object-contain drop-shadow-glow"
+            draggable={false}
+          />
+        </div>
+        {/* Centered Play button below animation */}
+        <button onClick={onPlayNow} className="mt-8 bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 text-white font-extrabold text-4xl px-24 py-10 rounded-full shadow-2xl border-4 border-cyan-400/40 hover:scale-105 hover:shadow-cyan-400/40 transition-all duration-300 flex items-center gap-6 neon-glow focus:outline-none focus:ring-4 focus:ring-cyan-400/40">
+          <span className="flex items-center gap-4">
+            <Play className="w-12 h-12 animate-pulse" />
+            PLAY
+          </span>
+        </button>
+      </div>
+      {/* Neon background grid and particles */}
+      <div className="absolute inset-0 opacity-20 pointer-events-none">
         <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 via-transparent to-purple-500/10"></div>
         <div className="grid grid-cols-12 grid-rows-12 h-full w-full">
           {Array.from({ length: 144 }).map((_, i) => (
@@ -57,10 +139,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onPlayNow, onSettings, on
             ></div>
           ))}
         </div>
-      </div>
-
-      {/* Floating particles */}
-      <div className="absolute inset-0 pointer-events-none">
         {Array.from({ length: 20 }).map((_, i) => (
           <div
             key={i}
@@ -73,110 +151,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onPlayNow, onSettings, on
             }}
           ></div>
         ))}
-      </div>
-
-      {/* Main content */}
-      <div className="relative z-10 text-center max-w-2xl mx-auto">
-        {/* Logo/Title */}
-        <div className="mb-12">
-          <div className="flex items-center justify-center mb-4">
-            <Zap className="w-16 h-16 text-cyan-400 mr-4 animate-pulse" />
-            <h1 className="text-6xl md:text-8xl font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-              NEON
-            </h1>
-          </div>
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-2">RUNNER</h2>
-          <p className="text-gray-300 text-lg">Escape the neon city in this endless cyberpunk adventure</p>
-        </div>
-
-        {/* User info */}
-        {user && (
-          <div className="mb-8 p-4 bg-black/50 rounded-lg border border-cyan-500/30 backdrop-blur-sm">
-            <div className="flex flex-col md:flex-row items-center justify-center gap-4 text-white">
-              <span className="text-cyan-400">Welcome back, {user.username}</span>
-              <div className="flex items-center gap-2">
-                <Trophy className="w-5 h-5 text-yellow-400" />
-                <span className="text-yellow-400">Best: {user.highScore}</span>
-              </div>
-              {/* Coin balance cyberpunk badge */}
-              {typeof user.coin === 'number' && (
-                <div className="flex items-center gap-2 bg-gradient-to-r from-yellow-400/30 to-cyan-400/30 border border-yellow-400/40 px-4 py-2 rounded-full shadow-lg animate-pulse">
-                  <img src={coinImg} alt="Coin" className="w-6 h-6 drop-shadow-glow animate-spin-slow" style={{ animationDuration: '2.5s' }} />
-                  <span className="text-yellow-300 font-extrabold text-lg tracking-wider neon-glow">{user.coin}</span>
-                  <span className="text-xs text-yellow-200 font-bold ml-1 tracking-widest">COINS</span>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Menu buttons */}
-        <div className="space-y-4">
-          <button
-            onClick={onPlayNow}
-            className="group w-full max-w-md mx-auto block px-8 py-4 bg-gradient-to-r from-cyan-600 to-purple-600 text-white font-bold text-xl rounded-lg shadow-lg border border-cyan-400/50 hover:shadow-cyan-400/50 hover:shadow-2xl transition-all duration-300 transform hover:scale-105 hover:border-cyan-400"
-          >
-            <div className="flex items-center justify-center gap-3">
-              <Play className="w-6 h-6 group-hover:animate-pulse" />
-              <span className="bg-gradient-to-r from-white to-cyan-200 bg-clip-text text-transparent">
-                {user ? 'PLAY NOW' : 'START GAME'}
-              </span>
-            </div>
-          </button>
-
-          <button
-            onClick={onLeaderboard}
-            className="group w-full max-w-md mx-auto block px-8 py-3 bg-black/50 text-white font-semibold rounded-lg border border-yellow-500/50 hover:border-yellow-400 hover:shadow-yellow-400/30 hover:shadow-lg transition-all duration-300 backdrop-blur-sm"
-          >
-            <div className="flex items-center justify-center gap-3">
-              <Crown className="w-5 h-5 text-yellow-400 group-hover:animate-pulse" />
-              <span>Leaderboard</span>
-            </div>
-          </button>
-
-          {/* Tombol Shop */}
-          <button
-            onClick={onShop}
-            className="group w-full max-w-md mx-auto block px-8 py-3 bg-black/50 text-white font-semibold rounded-lg border border-cyan-500/50 hover:border-cyan-400 hover:shadow-cyan-400/30 hover:shadow-lg transition-all duration-300 backdrop-blur-sm"
-          >
-            <div className="flex items-center justify-center gap-3">
-              <Zap className="w-5 h-5 text-cyan-400 group-hover:animate-pulse" />
-              <span>Shop</span>
-            </div>
-          </button>
-
-          <button
-            onClick={onSettings}
-            className="group w-full max-w-md mx-auto block px-8 py-3 bg-black/50 text-white font-semibold rounded-lg border border-purple-500/50 hover:border-purple-400 hover:shadow-purple-400/30 hover:shadow-lg transition-all duration-300 backdrop-blur-sm"
-          >
-            <div className="flex items-center justify-center gap-3">
-              <Settings className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
-              <span>Sound Settings</span>
-            </div>
-          </button>
-
-          {user && (
-            <button
-              onClick={onLogout}
-              className="group w-full max-w-md mx-auto block px-8 py-3 bg-black/30 text-gray-300 font-semibold rounded-lg border border-gray-600/50 hover:border-red-400 hover:text-red-400 hover:shadow-red-400/20 hover:shadow-lg transition-all duration-300 backdrop-blur-sm"
-            >
-              <div className="flex items-center justify-center gap-3">
-                <LogOut className="w-5 h-5" />
-                <span>Logout</span>
-              </div>
-            </button>
-          )}
-        </div>
-
-        {/* Instructions */}
-        <div className="mt-12 p-6 bg-black/30 rounded-lg border border-gray-700/50 backdrop-blur-sm">
-          <h3 className="text-cyan-400 font-bold mb-3">How to Play</h3>
-          <div className="text-gray-300 text-sm space-y-2">
-            <p><kbd className="px-2 py-1 bg-gray-800 rounded text-cyan-400">SPACE</kbd> or <kbd className="px-2 py-1 bg-gray-800 rounded text-cyan-400">↑</kbd> to Jump</p>
-            <p><kbd className="px-2 py-1 bg-gray-800 rounded text-cyan-400">↓</kbd> to Duck</p>
-            <p>Avoid obstacles and survive as long as possible!</p>
-          </div>
-        </div>
       </div>
     </div>
   );
