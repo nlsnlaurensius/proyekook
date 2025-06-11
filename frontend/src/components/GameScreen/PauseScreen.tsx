@@ -61,63 +61,48 @@ const PauseScreen: React.FC<PauseScreenProps> = ({
         </button>
         {/* Sound Settings */}
         <div className="w-full bg-black/40 rounded-lg p-4 border border-cyan-400/20 flex flex-col gap-4 mb-2">
-          {/* SFX */}
-          <div className="mb-2">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-cyan-200 font-semibold">Sound Effects</span>
-              <button
-                onClick={handleToggleSound}
-                className={`w-10 h-6 flex items-center rounded-full p-1 transition-colors duration-200 ${localSoundEnabled ? 'bg-cyan-400' : 'bg-gray-600'}`}
-                aria-label="Toggle SFX"
-              >
-                <span
-                  className={`h-4 w-4 bg-white rounded-full shadow transform transition-transform duration-200 ${localSoundEnabled ? 'translate-x-4' : ''}`}
-                />
-              </button>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-cyan-200 text-xs">Volume</span>
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.01}
-                value={localSfxVolume}
-                onChange={e => handleSfxVolume(Number(e.target.value))}
-                className="w-24 accent-cyan-400"
-                disabled={!localSoundEnabled}
+          {/* Master Sound Switch */}
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-cyan-200 font-semibold">Sound</span>
+            <button
+              onClick={handleToggleSound}
+              className={`w-12 h-7 flex items-center rounded-full p-1 transition-colors duration-200 ${localSoundEnabled ? 'bg-cyan-400' : 'bg-gray-600'}`}
+              aria-label="Toggle Sound"
+            >
+              <span
+                className={`h-5 w-5 bg-white rounded-full shadow transform transition-transform duration-200 ${localSoundEnabled ? 'translate-x-5' : ''}`}
               />
-              <span className="text-cyan-200 text-xs">{Math.round(localSfxVolume * 100)}</span>
-            </div>
+            </button>
           </div>
-          {/* Music */}
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-purple-200 font-semibold">Music</span>
-              <button
-                onClick={handleToggleSound}
-                className={`w-10 h-6 flex items-center rounded-full p-1 transition-colors duration-200 ${localSoundEnabled ? 'bg-purple-400' : 'bg-gray-600'}`}
-                aria-label="Toggle Music"
-              >
-                <span
-                  className={`h-4 w-4 bg-white rounded-full shadow transform transition-transform duration-200 ${localSoundEnabled ? 'translate-x-4' : ''}`}
-                />
-              </button>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-purple-200 text-xs">Volume</span>
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.01}
-                value={localMusicVolume}
-                onChange={e => handleMusicVolume(Number(e.target.value))}
-                className="w-24 accent-purple-400"
-                disabled={!localSoundEnabled}
-              />
-              <span className="text-purple-200 text-xs">{Math.round(localMusicVolume * 100)}</span>
-            </div>
+          {/* SFX Volume */}
+          <div className="flex items-center gap-3 justify-between">
+            <span className="text-cyan-200 text-xs w-20">SFX Volume</span>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.01}
+              value={localSfxVolume}
+              onChange={e => handleSfxVolume(Number(e.target.value))}
+              className="w-28 accent-cyan-400"
+              disabled={!localSoundEnabled}
+            />
+            <span className="text-cyan-200 text-xs w-8 text-right">{Math.round(localSfxVolume * 100)}</span>
+          </div>
+          {/* Music Volume */}
+          <div className="flex items-center gap-3 justify-between">
+            <span className="text-purple-200 text-xs w-20">Music Volume</span>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.01}
+              value={localMusicVolume}
+              onChange={e => handleMusicVolume(Number(e.target.value))}
+              className="w-28 accent-purple-400"
+              disabled={!localSoundEnabled}
+            />
+            <span className="text-purple-200 text-xs w-8 text-right">{Math.round(localMusicVolume * 100)}</span>
           </div>
         </div>
         <button

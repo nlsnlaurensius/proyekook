@@ -23,7 +23,8 @@ const Obstacle: React.FC<ObstacleProps> = ({ obstacle, collided, obstacleImg, ex
       ...extraStyle,
     }}
   >
-    <div style={{
+    {/* Hapus dashed biru visual collider obstacle */}
+    {/* <div style={{
       position: 'absolute',
       left: 0,
       top: 0,
@@ -33,7 +34,7 @@ const Obstacle: React.FC<ObstacleProps> = ({ obstacle, collided, obstacleImg, ex
       boxSizing: 'border-box',
       pointerEvents: 'none',
       zIndex: 100,
-    }} />
+    }} /> */}
     <img
       src={obstacleImg}
       alt={obstacle.type}

@@ -44,4 +44,16 @@ public class UserPowerUpService {
             userPowerUpRepository.save(newUp);
         }
     }
+
+    @Transactional
+    public void decrementUserPowerUp(User user, PowerUp powerUp) {
+        List<UserPowerUp> list = userPowerUpRepository.findByUserId(user.getId());
+        for (UserPowerUp up : list) {
+            if (up.getPowerUp().getId().equals(powerUp.getId()) && up.getQuantity() > 0) {
+                up.setQuantity(up.getQuantity() - 1);
+                userPowerUpRepository.save(up);
+                break;
+            }
+        }
+    }
 }

@@ -101,3 +101,13 @@ export async function getUserOwnedPowerUps(userId: number, token?: string) {
   if (!res.ok) throw new Error('Failed to fetch user owned powerups');
   return res.json();
 }
+
+export async function usePowerUp(userId: number, powerUpId: number, token?: string) {
+  const res = await fetch(`/api/powerups/use/${userId}/${powerUpId}`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  const data = await res.json();
+  if (!res.ok || data.success === false) throw new Error(data.message || 'Gagal menggunakan power up');
+  return data;
+}

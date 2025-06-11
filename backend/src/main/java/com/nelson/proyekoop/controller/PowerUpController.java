@@ -61,6 +61,17 @@ public class PowerUpController {
         return ResponseEntity.ok(new ApiResponse<>(true, "User power-ups fetched", dtos));
     }
 
+    @PostMapping("/use/{userId}/{powerUpId}")
+    public ResponseEntity<ApiResponse<String>> usePowerUp(@PathVariable Long userId, @PathVariable Long powerUpId) {
+        User user = userService.getEntityById(userId);
+        PowerUp powerUp = powerUpRepository.findById(powerUpId).orElse(null);
+        if (powerUp == null) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(false, "Power-up not found", null));
+        }
+        userPowerUpService.decrementUserPowerUp(user, powerUp);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Power-up used", null));
+    }
+
     public static class UserPowerUpDTO {
         private Long powerUpId;
         private String powerUpName;

@@ -21,6 +21,7 @@ interface PlayerProps {
   deathFrames: string[];
   redShine?: boolean; // Red shine effect
   goldShine?: boolean; // Gold shine effect
+  shieldBlink?: boolean; // Blinking effect for shield
 }
 
 const Player: React.FC<PlayerProps> = ({
@@ -41,6 +42,7 @@ const Player: React.FC<PlayerProps> = ({
   deathFrames,
   redShine = false,
   goldShine = false,
+  shieldBlink = false,
 }) => (
   <div
     className="absolute transition-all duration-100"
@@ -54,6 +56,8 @@ const Player: React.FC<PlayerProps> = ({
       boxShadow: collidedObstacleId !== null ? '0 0 32px 8px #ff0033, 0 0 0 8px #ff003388' : undefined,
       background: collidedObstacleId !== null ? 'rgba(255,0,0,0.15)' : undefined,
       transition: 'box-shadow 0.1s, background 0.1s',
+      opacity: shieldBlink ? 0.7 : 1,
+      filter: shieldBlink ? 'drop-shadow(0 0 16px #38bdf8) drop-shadow(0 0 8px #0ff)' : undefined,
     }}
   >
     {/* Gold shine overlay */}
@@ -92,17 +96,6 @@ const Player: React.FC<PlayerProps> = ({
         }}
       />
     )}
-    <div style={{
-      position: 'absolute',
-      left: 0,
-      top: 0,
-      width: '100%',
-      height: '100%',
-      border: '2px dashed red',
-      boxSizing: 'border-box',
-      pointerEvents: 'none',
-      zIndex: 100,
-    }} />
     {gameState === 'gameOver' ? (
       <img src={deathFrames[deathFrame]} alt="Robot Death" style={{ width: '100%', height: '100%', transform: 'scale(1.5)', transition: 'transform 0.1s' }} draggable={false} />
     ) : isJumping ? (
