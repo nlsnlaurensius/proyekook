@@ -3,6 +3,7 @@ import { Play, Settings, LogOut, Crown, ShoppingBag } from 'lucide-react';
 import { Howl } from 'howler';
 import homeMusicSrc from '../assets/sounds/home.mp3';
 import coinImg from '../assets/coin.png';
+import { getUserByUsername } from '../utils/api';
 
 const walkFrames = Object.values(
   import.meta.glob('../assets/walk/*.png', { eager: true, as: 'url' })
@@ -29,6 +30,8 @@ interface HomeScreenProps {
 const HomeScreen: React.FC<HomeScreenProps> = ({ user, onPlayNow, onSettings, onLeaderboard, onLogout, musicEnabled = true, musicVolume = 0.7, onShop }) => {
   const musicRef = useRef<Howl | null>(null);
   const [frame, setFrame] = useState(0);
+  const [liveHighScore, setLiveHighScore] = useState<number | null>(null);
+
   useEffect(() => {
     if (musicRef.current) {
       musicRef.current.unload();
@@ -47,12 +50,37 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onPlayNow, onSettings, on
       musicRef.current?.unload();
     };
   }, [musicEnabled, musicVolume]);
+
   useEffect(() => {
     const interval = setInterval(() => {
       setFrame(f => (f + 1) % walkFrames.length);
     }, 60); // lebih cepat
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (!user || !user.username) return;
+    let interval: ReturnType<typeof setInterval>;
+    const fetchUserHighScore = async () => {
+      try {
+        const token = localStorage.getItem('neonRunnerToken') || undefined;
+        const res = await getUserByUsername(user.username, token);
+        const fetched = res?.data || res?.payload;
+        if (fetched && typeof fetched.highScore === 'number' && fetched.highScore !== user.highScore) {
+          setLiveHighScore(fetched.highScore);
+        } else if (fetched && typeof fetched.highestScore === 'number' && fetched.highestScore !== user.highScore) {
+          setLiveHighScore(fetched.highestScore);
+        } else {
+          setLiveHighScore(user.highScore);
+        }
+      } catch {
+        setLiveHighScore(user.highScore);
+      }
+    };
+    fetchUserHighScore();
+    interval = setInterval(fetchUserHighScore, 2000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-gray-900 via-purple-900 to-black relative overflow-hidden flex items-center justify-center">
@@ -63,7 +91,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onPlayNow, onSettings, on
             <span className="font-bold text-cyan-200 text-xl tracking-wide drop-shadow">{user.username}</span>
             <div className="flex items-center gap-2 mt-1">
               <Crown className="w-6 h-6 text-yellow-400" />
-              <span className="text-yellow-300 font-bold text-lg">High Score: {user.highScore}</span>
+              <span className="text-yellow-300 font-bold text-lg">High Score: {liveHighScore !== null ? liveHighScore : user.highScore}</span>
             </div>
           </div>
         )}

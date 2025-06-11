@@ -174,29 +174,7 @@ const SoundSettings: React.FC<SoundSettingsProps> = ({
           </button>
         </div>
       </div>
-
-      <style jsx>{`
-        .slider::-webkit-slider-thumb {
-          appearance: none;
-          height: 20px;
-          width: 20px;
-          border-radius: 50%;
-          background: linear-gradient(45deg, #00f5ff, #8000ff);
-          border: 2px solid white;
-          cursor: pointer;
-          box-shadow: 0 0 10px rgba(0, 245, 255, 0.5);
-        }
-
-        .slider::-moz-range-thumb {
-          height: 20px;
-          width: 20px;
-          border-radius: 50%;
-          background: linear-gradient(45deg, #00f5ff, #8000ff);
-          border: 2px solid white;
-          cursor: pointer;
-          box-shadow: 0 0 10px rgba(0, 245, 255, 0.5);
-        }
-      `}</style>
+      {/* Removed <style jsx> block that caused error */}
     </div>
   );
 };

@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Pause, Play } from 'lucide-react';
 import { submitGameSession, getPowerUps, getUserOwnedPowerUps, usePowerUp } from '../utils/api';
 import { Howl } from 'howler';
-import cityBg from '../assets/city/background.svg';
+import cityBg from '../assets/city/background.png';
 import obstacleJumpImg from '../assets/obsctacle/jump.png';
 import obstacleDuckImg from '../assets/obsctacle/duck.png';
 import playMusicSrc from '../assets/sounds/play.mp3';
@@ -34,12 +34,12 @@ import { Obstacle, Particle, GameScreenProps } from './GameScreen/types';
 // --- Dino-like constants ---
 const GROUND_Y = 0;
 const JUMP_HEIGHT = 100; // Tinggi maksimum lompatan (bisa diubah sesuai kebutuhan)
-const JUMP_DURATION = 700; // ms
-const DUCK_DURATION = 700; // ms
+const JUMP_DURATION = 400; // ms
+const DUCK_DURATION = 400; // ms
 const ROBOT_WIDTH = 90;
 const ROBOT_HEIGHT = 120;
-const OBSTACLE_MIN_GAP = 220;
-const OBSTACLE_MAX_GAP = 420;
+let OBSTACLE_MIN_GAP = 220;
+let OBSTACLE_MAX_GAP = 420;
 const OBSTACLE_SPEED_START = 6;
 const OBSTACLE_SPEED_MAX = 13;
 const OBSTACLE_TYPES: Obstacle['type'][] = ['low', 'high'];
@@ -106,58 +106,127 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
 
   // --- Dino-like obstacle spawn logic ---
   const createObstacle = useCallback(() => {
+    // Dynamic gap: reduce as score increases
+    const effectiveScore = Math.max(score, 1);
+    const minGap = Math.max(120, 220 - Math.floor(effectiveScore / 100) * 20); // never below 120
+    const maxGap = Math.max(180, 420 - Math.floor(effectiveScore / 100) * 40); // never below 180
+    const minTypeGap = 320; // Minimum horizontal gap between different types in a group (ditingkatkan agar selalu aman)
+    const patternChance = Math.random();
+    if (patternChance < 0.25 && score > 100) {
+      // Wall with a single gap (side-by-side only, never stacked)
+      const groupSize = Math.floor(Math.random() * 2) + 3; // 3-4 obstacles
+      const gapIdx = Math.floor(Math.random() * groupSize);
+      const baseX = lastObstacleXRef.current + minGap + Math.random() * (maxGap - minGap);
+      let lastType: 'low' | 'high' | 'flying' | null = null;
+      let lastX = baseX;
+      let lowPlaced = false;
+      for (let i = 0; i < groupSize; i++) {
+        if (i === gapIdx) {
+          lastType = null;
+          lastX += 48; // skip gap
+          continue;
+        }
+        let type: 'low' | 'high' = Math.random() < 0.5 ? 'low' : 'high';
+        if (type === 'low') {
+          if (lowPlaced) type = 'high'; // Only one low allowed per group
+          else lowPlaced = true;
+        }
+        let x = lastX;
+        if (lastType && lastType !== type) x += minTypeGap;
+        const y = type === 'low' ? ROBOT_HEIGHT - 40 + 16 : 0;
+        setObstacles(prev => [...prev, {
+          id: obstacleIdRef.current++,
+          x,
+          y,
+          type,
+          width: 40,
+          height: 40,
+        }]);
+        lastType = type;
+        lastX = x + 48;
+      }
+      lastObstacleXRef.current = lastX;
+      lastObstacleRef.current = Date.now();
+      return;
+    } else if (patternChance < 0.5 && score > 50) {
+      // Alternating high/low pattern (side-by-side only, with gap between types)
+      const groupSize = Math.floor(Math.random() * 2) + 2; // 2-3 obstacles
+      const baseX = lastObstacleXRef.current + minGap + Math.random() * (maxGap - minGap);
+      let lastType: 'low' | 'high' | 'flying' | null = null;
+      let lastX = baseX;
+      let lowPlaced = false;
+      for (let i = 0; i < groupSize; i++) {
+        let type: 'low' | 'high' = i % 2 === 0 ? 'high' : 'low';
+        if (type === 'low') {
+          if (lowPlaced) type = 'high'; // Only one low allowed per group
+          else lowPlaced = true;
+        }
+        let x = lastX;
+        if (lastType && lastType !== type) x += minTypeGap;
+        const y = type === 'low' ? ROBOT_HEIGHT - 40 + 16 : 0;
+        setObstacles(prev => [...prev, {
+          id: obstacleIdRef.current++,
+          x,
+          y,
+          type,
+          width: 40,
+          height: 40,
+        }]);
+        lastType = type;
+        lastX = x + 44;
+      }
+      lastObstacleXRef.current = lastX;
+      lastObstacleRef.current = Date.now();
+      return;
+    } else if (patternChance < 0.7 && score > 30) {
+      // Group spawn: 2-4 obstacles, random types, all side-by-side, with gap between types
+      const groupSize = Math.floor(Math.random() * 3) + 2; // 2-4 obstacles
+      const baseX = lastObstacleXRef.current + minGap + Math.random() * (maxGap - minGap);
+      let lastType: 'low' | 'high' | 'flying' | null = null;
+      let lastX = baseX;
+      let lowPlaced = false;
+      for (let i = 0; i < groupSize; i++) {
+        let type: 'low' | 'high' = OBSTACLE_TYPES[Math.floor(Math.random() * OBSTACLE_TYPES.length)];
+        if (type === 'low') {
+          if (lowPlaced) type = 'high'; // Only one low allowed per group
+          else lowPlaced = true;
+        }
+        let x = lastX;
+        if (lastType && lastType !== type) x += minTypeGap;
+        const y = type === 'low' ? ROBOT_HEIGHT - 40 + 16 : 0;
+        setObstacles(prev => [...prev, {
+          id: obstacleIdRef.current++,
+          x,
+          y,
+          type,
+          width: 40,
+          height: 40,
+        }]);
+        lastType = type;
+        lastX = x + 40;
+      }
+      lastObstacleXRef.current = lastX;
+      lastObstacleRef.current = Date.now();
+      return;
+    }
+    // Default: single obstacle
     const type = OBSTACLE_TYPES[Math.floor(Math.random() * OBSTACLE_TYPES.length)];
     let width = 40, height = 40, y = 0;
     if (type === 'low') {
-      width = 40; // default fallback
-      height = 40;
-      try {
-        const img = new window.Image();
-        img.onload = () => {
-          setObstacles(prev => {
-            const newObs = [...prev];
-            const idx = newObs.findIndex(o => o.id === obstacleIdRef.current);
-            if (idx !== -1) {
-              newObs[idx] = { ...newObs[idx], width: img.width, height: img.height };
-            }
-            return newObs;
-          });
-        };
-        img.src = obstacleDuckImg;
-      } catch {}
       y = ROBOT_HEIGHT - height + 16;
-    } else if (type === 'high') {
-      width = 40;
-      height = 40;
-      try {
-        const img = new window.Image();
-        img.onload = () => {
-          setObstacles(prev => {
-            const newObs = [...prev];
-            const idx = newObs.findIndex(o => o.id === obstacleIdRef.current);
-            if (idx !== -1) {
-              newObs[idx] = { ...newObs[idx], width: img.width, height: img.height };
-            }
-            return newObs;
-          });
-        };
-        img.src = obstacleJumpImg;
-      } catch {}
-      y = 0;
     }
-    const x = lastObstacleXRef.current + OBSTACLE_MIN_GAP + Math.random() * (OBSTACLE_MAX_GAP - OBSTACLE_MIN_GAP);
+    const x = lastObstacleXRef.current + minGap + Math.random() * (maxGap - minGap);
     lastObstacleXRef.current = x;
-    const obstacle = {
+    setObstacles(prev => [...prev, {
       id: obstacleIdRef.current++,
       x,
       y,
       type,
       width,
       height,
-    };
-    setObstacles(prev => [...prev, obstacle]);
+    }]);
     lastObstacleRef.current = Date.now();
-  }, []);
+  }, [score]);
 
   // Fungsi untuk generate coin secara random
   const createCoin = useCallback(() => {
