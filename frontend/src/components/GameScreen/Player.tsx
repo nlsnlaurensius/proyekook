@@ -22,7 +22,8 @@ interface PlayerProps {
   redShine?: boolean; // Red shine effect
   goldShine?: boolean; // Gold shine effect
   shieldBlink?: boolean; // Blinking effect for shield
-  left?: number | string; // NEW: horizontal position override
+  left?: number | string; // horizontal position override (px or %)
+  leftFraction?: number; // fraction of parent width (0.25 = 25%)
 }
 
 const Player: React.FC<PlayerProps> = ({
@@ -44,70 +45,84 @@ const Player: React.FC<PlayerProps> = ({
   redShine = false,
   goldShine = false,
   shieldBlink = false,
-  left = '500px', // NEW: default to previous value
-}) => (
-  <div
-    className="absolute transition-all duration-100"
-    style={{
-      left: typeof left === 'number' ? `${left}px` : left,
-      bottom: `${56 + robotY}px`,
-      width: `${ROBOT_WIDTH}px`,
-      height: `${isDucking ? ROBOT_HEIGHT * 0.7 : ROBOT_HEIGHT}px`,
-      transform: 'scaleX(-1)',
-      zIndex: 10,
-      boxShadow: collidedObstacleId !== null ? '0 0 32px 8px #ff0033, 0 0 0 8px #ff003388' : undefined,
-      background: collidedObstacleId !== null ? 'rgba(255,0,0,0.15)' : undefined,
-      transition: 'box-shadow 0.1s, background 0.1s',
-      opacity: shieldBlink ? 0.7 : 1,
-      filter: shieldBlink ? 'drop-shadow(0 0 16px #38bdf8) drop-shadow(0 0 8px #0ff)' : undefined,
-    }}
-  >
-    {/* Gold shine overlay */}
-    {goldShine && (
-      <div
-        style={{
-          position: 'absolute',
-          left: '-16px',
-          top: '-16px',
-          width: `calc(100% + 32px)`,
-          height: `calc(100% + 32px)`,
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, #fffbe6 0%, #ffe066 40%, #ffd70088 70%, transparent 100%)',
-          zIndex: 150,
-          pointerEvents: 'none',
-          opacity: 0.85,
-          animation: 'gold-shine-flash 0.18s linear',
-        }}
-      />
-    )}
-    {/* Red shine overlay */}
-    {redShine && (
-      <div
-        style={{
-          position: 'absolute',
-          left: '-16px',
-          top: '-16px',
-          width: `calc(100% + 32px)`,
-          height: `calc(100% + 32px)`,
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, #ff003388 0%, #ff003344 60%, transparent 100%)',
-          zIndex: 200,
-          pointerEvents: 'none',
-          opacity: 0.85,
-          animation: 'red-shine-flash 0.18s linear',
-        }}
-      />
-    )}
-    {gameState === 'gameOver' ? (
-      <img src={deathFrames[deathFrame]} alt="Robot Death" style={{ width: '100%', height: '100%', transform: 'scale(1.5)', transition: 'transform 0.1s' }} draggable={false} />
-    ) : isJumping ? (
-      <img src={jumpFrames[jumpFrame]} alt="Robot Jump" style={{ width: '100%', height: '100%' }} draggable={false} />
-    ) : isDucking ? (
-      <img src={duckFrames[duckFrame]} alt="Robot Duck" style={{ width: '100%', height: '100%' }} draggable={false} />
-    ) : (
-      <img src={runFrames[runFrame]} alt="Robot Run" style={{ width: '100%', height: '100%' }} draggable={false} />
-    )}
-  </div>
-);
+  left = undefined, // default undefined, use leftFraction if not set
+  leftFraction = 0.25, // default 25% dari lebar parent
+}) => {
+  // Hitung posisi left: jika leftFraction diberikan, gunakan persentase parent
+  // Jika left diberikan (misal override manual), gunakan itu
+  // Catatan: parent harus relative/absolute agar % bekerja
+  let leftStyle: string | undefined = undefined;
+  if (left !== undefined) {
+    leftStyle = typeof left === 'number' ? `${left}px` : left;
+  } else if (leftFraction !== undefined) {
+    leftStyle = `${leftFraction * 100}%`;
+    // Untuk benar-benar center, kurangi setengah lebar robot (transformX)
+  }
+
+  return (
+    <div
+      className="absolute transition-all duration-100"
+      style={{
+        left: leftStyle,
+        transform: `translateX(-50%) scaleX(-1)`, // center anchor, flip
+        bottom: `${56 + robotY}px`,
+        width: `${ROBOT_WIDTH}px`,
+        height: `${isDucking ? ROBOT_HEIGHT * 0.7 : ROBOT_HEIGHT}px`,
+        zIndex: 10,
+        boxShadow: collidedObstacleId !== null ? '0 0 32px 8px #ff0033, 0 0 0 8px #ff003388' : undefined,
+        background: collidedObstacleId !== null ? 'rgba(255,0,0,0.15)' : undefined,
+        transition: 'box-shadow 0.1s, background 0.1s',
+        opacity: shieldBlink ? 0.7 : 1,
+        filter: shieldBlink ? 'drop-shadow(0 0 16px #38bdf8) drop-shadow(0 0 8px #0ff)' : undefined,
+      }}
+    >
+      {/* Gold shine overlay */}
+      {goldShine && (
+        <div
+          style={{
+            position: 'absolute',
+            left: '-16px',
+            top: '-16px',
+            width: `calc(100% + 32px)`,
+            height: `calc(100% + 32px)`,
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, #fffbe6 0%, #ffe066 40%, #ffd70088 70%, transparent 100%)',
+            zIndex: 150,
+            pointerEvents: 'none',
+            opacity: 0.85,
+            animation: 'gold-shine-flash 0.18s linear',
+          }}
+        />
+      )}
+      {/* Red shine overlay */}
+      {redShine && (
+        <div
+          style={{
+            position: 'absolute',
+            left: '-16px',
+            top: '-16px',
+            width: `calc(100% + 32px)`,
+            height: `calc(100% + 32px)`,
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, #ff003388 0%, #ff003344 60%, transparent 100%)',
+            zIndex: 200,
+            pointerEvents: 'none',
+            opacity: 0.85,
+            animation: 'red-shine-flash 0.18s linear',
+          }}
+        />
+      )}
+      {gameState === 'gameOver' ? (
+        <img src={deathFrames[deathFrame]} alt="Robot Death" style={{ width: '100%', height: '100%', transform: 'scale(1.5)', transition: 'transform 0.1s' }} draggable={false} />
+      ) : isJumping ? (
+        <img src={jumpFrames[jumpFrame]} alt="Robot Jump" style={{ width: '100%', height: '100%' }} draggable={false} />
+      ) : isDucking ? (
+        <img src={duckFrames[duckFrame]} alt="Robot Duck" style={{ width: '100%', height: '100%' }} draggable={false} />
+      ) : (
+        <img src={runFrames[runFrame]} alt="Robot Run" style={{ width: '100%', height: '100%' }} draggable={false} />
+      )}
+    </div>
+  );
+};
 
 export default Player;

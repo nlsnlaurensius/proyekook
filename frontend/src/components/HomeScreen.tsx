@@ -116,61 +116,69 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onPlayNow, onSettings, on
 
       {/* MOBILE PORTRAIT UI */}
       {isMobile && isPortrait ? (
-        <div className="relative z-10 flex flex-col items-center justify-center min-h-screen w-full py-2 gap-3 sm:gap-6 max-w-full overflow-hidden">
-      <h1 className="text-4xl sm:text-5xl font-extrabold text-cyan-300 neon-glow drop-shadow-lg animate-pulse select-none mb-1 sm:mb-2">
-        NEON RUNNER
-      </h1>
-      <img
-        src={walkFrames[frame] as string}
-        alt="Neon Runner Walk Animation"
-        className="w-36 h-36 sm:w-48 sm:h-48 object-contain drop-shadow-glow mb-1 sm:mb-2"
-        draggable={false}
-      />
-      <button
-        onClick={() => onPlayNow({ isMobile, isPortrait })}
-        className="w-full max-w-xs text-xl sm:text-2xl px-4 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 text-white font-extrabold rounded-xl sm:rounded-2xl shadow-2xl border-2 sm:border-4 border-cyan-400/40 hover:scale-105 hover:shadow-cyan-400/40 transition-all duration-300 flex items-center justify-center gap-2 sm:gap-4 neon-glow focus:outline-none focus:ring-2 sm:focus:ring-4 focus:ring-cyan-400/40 mb-2 sm:mb-4"
-      >
-        <Play className="w-7 h-7 sm:w-8 sm:h-8" />
-        PLAY
-      </button>
-      <div className="flex w-full max-w-xs gap-2 sm:gap-4 mb-2 sm:mb-4">
-        <button onClick={onLeaderboard} className="flex-1 flex flex-col items-center bg-black/60 rounded-lg sm:rounded-xl border border-yellow-400/30 sm:border-2 shadow-xl hover:scale-105 transition py-2 sm:py-4">
-          <Crown className="w-7 h-7 sm:w-8 sm:h-8 text-yellow-400 mb-0.5" />
-          <span className="text-yellow-200 font-bold text-xs sm:text-base drop-shadow">Leaderboard</span>
+       <div className="relative z-10 flex flex-col items-center justify-center min-h-screen w-full py-2 gap-3 sm:gap-6 max-w-full overflow-hidden">
+        <h1 className="text-4xl sm:text-5xl font-extrabold text-cyan-300 neon-glow drop-shadow-lg animate-pulse select-none mb-1 sm:mb-2">
+          NEON RUNNER
+        </h1>
+        <img
+          src={walkFrames[frame] as string}
+          alt="Neon Runner Walk Animation"
+          className="w-36 h-36 sm:w-48 sm:h-48 object-contain drop-shadow-glow mb-1 sm:mb-2"
+          draggable={false}
+        />
+        <button
+          onClick={() => onPlayNow({ isMobile, isPortrait })}
+          className="w-full max-w-xs text-xl sm:text-2xl px-4 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 text-white font-extrabold rounded-xl sm:rounded-2xl shadow-2xl border-2 sm:border-4 border-cyan-400/40 hover:scale-105 hover:shadow-cyan-400/40 transition-all duration-300 flex items-center justify-center gap-2 sm:gap-4 neon-glow focus:outline-none focus:ring-2 sm:focus:ring-4 focus:ring-cyan-400/40 mb-2 sm:mb-4"
+        >
+          <Play className="w-7 h-7 sm:w-8 sm:h-8" />
+          PLAY
         </button>
-        <button onClick={onShop} className="flex-1 flex flex-col items-center bg-black/60 rounded-lg sm:rounded-xl border border-cyan-400/30 sm:border-2 shadow-xl hover:scale-105 transition py-2 sm:py-4">
-          <ShoppingBag className="w-7 h-7 sm:w-8 sm:h-8 text-cyan-300 mb-0.5" />
-          <span className="text-cyan-200 font-bold text-xs sm:text-base drop-shadow">Shop</span>
-        </button>
-      </div>
-      <button onClick={onSettings} className="w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center bg-black/60 rounded-full border border-cyan-400/30 shadow-lg hover:bg-cyan-900/30 transition mb-2 sm:mb-4">
-        <Settings className="w-7 h-7 sm:w-10 sm:h-10 text-cyan-300 animate-spin-slow" style={{ animationDuration: '2.5s' }} />
-      </button>
-      {user && (
-        <div className="w-full max-w-xs flex flex-col items-center gap-1 sm:gap-2 bg-black/70 border border-cyan-400/40 sm:border-2 rounded-lg sm:rounded-xl px-2 sm:px-3 py-1 sm:py-2 shadow-xl">
-          <span className="font-bold text-cyan-200 text-base sm:text-lg tracking-wide drop-shadow">{user.username}</span>
-          <div className="flex items-center gap-1 sm:gap-2">
-            <Crown className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400" />
-            <span className="text-yellow-300 font-bold text-xs sm:text-sm">High Score: {liveHighScore ?? user.highScore}</span>
-          </div>
-          <div className="flex items-center gap-1 sm:gap-2 bg-black/70 border border-yellow-400/40 sm:border-2 rounded px-1 sm:px-2 py-0.5 sm:py-1 shadow-lg">
-            <img src={coinImg} alt="Coin" className="w-4 h-4 sm:w-5 sm:h-5 drop-shadow-glow" />
-            <span className="text-yellow-200 font-bold text-xs sm:text-sm">{user.coin ?? 0}</span>
-          </div>
+        <div className="flex w-full max-w-xs gap-2 sm:gap-4 mb-2 sm:mb-4">
+          {/* PERUBAHAN DI SINI: Tombol Leaderboard disesuaikan lebarnya */}
+          <button onClick={onLeaderboard} className={`${user ? 'flex-1' : 'w-full'} flex flex-col items-center bg-black/60 rounded-lg sm:rounded-xl border border-yellow-400/30 sm:border-2 shadow-xl hover:scale-105 transition py-2 sm:py-4`}>
+            <Crown className="w-7 h-7 sm:w-8 sm:h-8 text-yellow-400 mb-0.5" />
+            <span className="text-yellow-200 font-bold text-xs sm:text-base drop-shadow">Leaderboard</span>
+          </button>
+          
+          {/* PERUBAHAN DI SINI: Tombol Shop hanya ditampilkan jika user login */}
+          {user && (
+            <button onClick={onShop} className="flex-1 flex flex-col items-center bg-black/60 rounded-lg sm:rounded-xl border border-cyan-400/30 sm:border-2 shadow-xl hover:scale-105 transition py-2 sm:py-4">
+              <ShoppingBag className="w-7 h-7 sm:w-8 sm:h-8 text-cyan-300 mb-0.5" />
+              <span className="text-cyan-200 font-bold text-xs sm:text-base drop-shadow">Shop</span>
+            </button>
+          )}
         </div>
-      )}
-      <button onClick={onLogout} className="w-full max-w-xs bg-black/60 px-2 sm:px-4 py-2 sm:py-3 rounded-md sm:rounded-lg border border-red-400/30 sm:border-2 text-red-300 font-semibold hover:bg-red-900/30 transition flex items-center justify-center gap-2 sm:gap-3 shadow-lg text-base sm:text-lg mt-2 sm:mt-4">
-        <LogOut className="w-5 h-5 sm:w-6 sm:h-6" />
-        Logout
-      </button>
-    </div>
-      ) : isMobile && !isPortrait ? (
-        // MOBILE LANDSCAPE UI: judul, karakter, tombol play dalam satu div, gap kecil
-        <div className="fixed left-0 top-0 w-[100vw] h-[100vh] grid grid-cols-[1fr_auto_1fr] p-4 gap-4 z-10"> 
+        <button onClick={onSettings} className="w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center bg-black/60 rounded-full border border-cyan-400/30 shadow-lg hover:bg-cyan-900/30 transition mb-2 sm:mb-4">
+          <Settings className="w-7 h-7 sm:w-10 sm:h-10 text-cyan-300 animate-spin-slow" style={{ animationDuration: '2.5s' }} />
+        </button>
+        {user && (
+          <div className="w-full max-w-xs flex flex-col items-center gap-1 sm:gap-2 bg-black/70 border border-cyan-400/40 sm:border-2 rounded-lg sm:rounded-xl px-2 sm:px-3 py-1 sm:py-2 shadow-xl">
+            <span className="font-bold text-cyan-200 text-base sm:text-lg tracking-wide drop-shadow">{user.username}</span>
+            <div className="flex items-center gap-1 sm:gap-2">
+              <Crown className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400" />
+              <span className="text-yellow-300 font-bold text-xs sm:text-sm">High Score: {liveHighScore ?? user.highScore}</span>
+            </div>
+            <div className="flex items-center gap-1 sm:gap-2 bg-black/70 border border-yellow-400/40 sm:border-2 rounded px-1 sm:px-2 py-0.5 sm:py-1 shadow-lg">
+              <img src={coinImg} alt="Coin" className="w-4 h-4 sm:w-5 sm:h-5 drop-shadow-glow" />
+              <span className="text-yellow-200 font-bold text-xs sm:text-sm">{user.coin ?? 0}</span>
+            </div>
+          </div>
+        )}
         
-        {/* Kiri: Info User */}
-        <div className="col-start-1 row-start-1 flex flex-col items-start gap-2 z-20">
-            {user && (
+        {/* PERUBAHAN DI SINI: Tombol Logout hanya ditampilkan jika user login */}
+        {user && (
+          <button onClick={onLogout} className="w-full max-w-xs bg-black/60 px-2 sm:px-4 py-2 sm:py-3 rounded-md sm:rounded-lg border border-red-400/30 sm:border-2 text-red-300 font-semibold hover:bg-red-900/30 transition flex items-center justify-center gap-2 sm:gap-3 shadow-lg text-base sm:text-lg mt-2 sm:mt-4">
+            <LogOut className="w-5 h-5 sm:w-6 sm:h-6" />
+            Logout
+          </button>
+        )}
+      </div>
+      ) : isMobile && !isPortrait ? (
+        <div className="fixed left-0 top-0 w-[100vw] h-[100vh] p-4 z-10 relative"> 
+        
+          {/* Kiri Atas: Info User (Hanya muncul jika login) */}
+          {user && (
+            <div className="absolute top-4 left-4 z-20">
                 <div className="flex flex-col gap-1 bg-black/70 border border-cyan-400/40 rounded-lg px-2 py-1 shadow min-w-[90px] max-w-[160px]">
                     <span className="font-bold text-cyan-200 text-base tracking-wide drop-shadow">{user.username}</span>
                     <div className="flex items-center gap-1 mt-0.5">
@@ -189,51 +197,51 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onPlayNow, onSettings, on
                         Logout
                     </button>
                 </div>
-            )}
-        </div>
-
-        {/* [PERBAIKAN] Kolom Kanan Digabung Menjadi Satu Kontainer Flex */}
-        <div className="col-start-3 row-start-1 flex flex-col justify-between items-end z-20 h-full pb-4 pt-0">
-            {/* 1. Settings Button (di atas) */}
-            <button onClick={onSettings} className="bg-black/60 p-2 rounded-full border border-cyan-400/30 shadow hover:bg-cyan-900/30 transition">
-                <Settings className="w-6 h-6 text-cyan-300 animate-spin-slow" style={{ animationDuration: '2.5s' }} />
-            </button>
-            
-            {/* 2. Leaderboard & Shop Buttons (di bawah) */}
-            <div className="flex flex-col items-end gap-2">
-                <button onClick={onLeaderboard} className="flex flex-col items-center group bg-black/60 rounded-lg border border-yellow-400/30 shadow hover:scale-105 transition w-20 h-16 justify-center">
-                    <Crown className="w-7 h-7 text-yellow-400 group-hover:scale-110 transition" />
-                    <span className="mt-1 text-yellow-200 font-bold text-[10px] drop-shadow">Leaderboard</span>
-                </button>
-                {user && (
-                    <button onClick={onShop} className="flex flex-col items-center group bg-black/60 rounded-lg border border-cyan-400/30 shadow hover:scale-105 transition w-20 h-16 justify-center">
-                        <ShoppingBag className="w-7 h-7 text-cyan-300 group-hover:scale-110 transition" />
-                        <span className="mt-1 text-cyan-200 font-bold text-[10px] drop-shadow">Shop</span>
-                    </button>
-                )}
             </div>
-        </div>
+          )}
 
-        {/* [AREA TENGAH] - Tidak ada perubahan */}
-        <div className="col-start-2 row-start-1 flex flex-col items-center justify-between h-full z-10 py-4">
-            <h1 className="text-5xl font-extrabold text-cyan-300 drop-shadow-lg neon-glow animate-pulse select-none">
-                NEON RUNNER
-            </h1>
-            <img
-                src={walkFrames[frame] as string}
-                alt="Neon Runner Walk Animation"
-                className="h-[130px] w-auto object-contain drop-shadow-glow"
-                draggable={false}
-            />
-            <button
-                onClick={() => onPlayNow({ isMobile, isPortrait })}
-                className="text-xl px-8 py-3 bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 text-white font-extrabold rounded-full shadow-xl border-2 border-cyan-400/40 hover:scale-105 hover:shadow-cyan-400/40 transition-all duration-300 flex items-center gap-2 neon-glow focus:outline-none focus:ring-2 focus:ring-cyan-400/40"
-            >
-                <Play className="w-6 h-6" />
-                PLAY
-            </button>
-        </div>
-    </div>
+          {/* Kanan: Tombol Settings, Leaderboard, Shop */}
+          <div className="absolute top-4 right-4 z-20 flex flex-col justify-between items-end h-[calc(100%-2rem)]">
+              {/* Tombol Settings (di atas) */}
+              <button onClick={onSettings} className="bg-black/60 p-2 rounded-full border border-cyan-400/30 shadow hover:bg-cyan-900/30 transition">
+                  <Settings className="w-6 h-6 text-cyan-300 animate-spin-slow" style={{ animationDuration: '2.5s' }} />
+              </button>
+              
+              {/* Tombol Leaderboard & Shop (di bawah) */}
+              <div className="flex flex-col items-end gap-2">
+                  <button onClick={onLeaderboard} className="flex flex-col items-center group bg-black/60 rounded-lg border border-yellow-400/30 shadow hover:scale-105 transition w-20 h-16 justify-center">
+                      <Crown className="w-7 h-7 text-yellow-400 group-hover:scale-110 transition" />
+                      <span className="mt-1 text-yellow-200 font-bold text-[10px] drop-shadow">Leaderboard</span>
+                  </button>
+                  {user && (
+                      <button onClick={onShop} className="flex flex-col items-center group bg-black/60 rounded-lg border border-cyan-400/30 shadow hover:scale-105 transition w-20 h-16 justify-center">
+                          <ShoppingBag className="w-7 h-7 text-cyan-300 group-hover:scale-110 transition" />
+                          <span className="mt-1 text-cyan-200 font-bold text-[10px] drop-shadow">Shop</span>
+                      </button>
+                  )}
+              </div>
+          </div>
+
+          {/* TENGAH: Konten Utama (Judul, Player, Tombol Play) */}
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-between h-full py-4 pointer-events-none">
+              <h1 className="text-5xl font-extrabold text-cyan-300 drop-shadow-lg neon-glow animate-pulse select-none pointer-events-auto">
+                  NEON RUNNER
+              </h1>
+              <img
+                  src={walkFrames[frame] as string}
+                  alt="Neon Runner Walk Animation"
+                  className="h-[130px] w-auto object-contain drop-shadow-glow"
+                  draggable={false}
+              />
+              <button
+                  onClick={() => onPlayNow({ isMobile, isPortrait })}
+                  className="text-xl px-8 py-3 bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 text-white font-extrabold rounded-full shadow-xl border-2 border-cyan-400/40 hover:scale-105 hover:shadow-cyan-400/40 transition-all duration-300 flex items-center gap-2 neon-glow focus:outline-none focus:ring-2 focus:ring-cyan-400/40 pointer-events-auto"
+              >
+                  <Play className="w-6 h-6" />
+                  PLAY
+              </button>
+          </div>
+      </div>
       ) : (
         // DESKTOP/TABLET UI: high score value on new line
         <div className={`w-full h-screen grid grid-cols-[auto_1fr_auto] grid-rows-[auto_1fr_auto] p-4 sm:p-6 gap-4 ${isMobile && !isPortrait ? 'scale-[0.85] origin-top h-[117.6%]' : ''}`}>

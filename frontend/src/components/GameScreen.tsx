@@ -47,6 +47,9 @@ const OBSTACLE_TYPES: ObstacleType['type'][] = ['low', 'high'];
 // Tambahkan konstanta untuk collider
 const COLLIDER_WIDTH = ROBOT_WIDTH * 0.8; // 80% dari lebar asli
 const COLLIDER_X_OFFSET = (ROBOT_WIDTH - COLLIDER_WIDTH) / 2;
+// Player-only collider (slightly narrower)
+const PLAYER_COLLIDER_WIDTH = ROBOT_WIDTH * 0.65; // 65% dari lebar asli
+const PLAYER_COLLIDER_X_OFFSET = (ROBOT_WIDTH - PLAYER_COLLIDER_WIDTH) / 2;
 
 const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, soundEnabled, sfxVolume, musicVolume, onSoundSettingsChange, orientationState }) => {
   const [gameState, setGameState] = useState<GameState>(() => {
@@ -80,6 +83,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
   // Tambahkan state untuk coin
   const [coins, setCoins] = useState<{ id: number; x: number; y: number; collected: boolean }[]>([]);
   const [coinCount, setCoinCount] = useState(0);
+  const gameWorldRef = useRef(null);
   // --- Power Up State ---
   const [userPowerUps, setUserPowerUps] = useState<Record<number, number>>({});
   const [powerUpList, setPowerUpList] = useState<{ id: number; name: string; duration?: number; effectMultiplier?: number }[]>([]);
@@ -386,11 +390,14 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
       if (updated.length === 0 || (800 - updated[updated.length - 1].x) > OBSTACLE_MIN_GAP + Math.random() * (OBSTACLE_MAX_GAP - OBSTACLE_MIN_GAP)) {
         createObstacle();
       }
-      // Collider presisi: posisi X player = 500px (left), collider X = 500 + offset
-      const robotRect = {
-        x: 500 + COLLIDER_X_OFFSET,
+      // Collider presisi: posisi X player = 25% lebar game area (leftFraction), collider X = robotX + offset
+      const gameWidth = gameWorldRef.current ? gameWorldRef.current.offsetWidth : 800;
+      const robotX = gameWidth * 0.25;
+      // Use narrower collider for player-obstacle collision only
+      const playerColliderRect = {
+        x: robotX + PLAYER_COLLIDER_X_OFFSET,
         y: 56 + robotY,
-        width: COLLIDER_WIDTH,
+        width: PLAYER_COLLIDER_WIDTH,
         height: isDucking ? ROBOT_HEIGHT * 0.7 : ROBOT_HEIGHT,
       };
       for (const obstacle of updated) {
@@ -401,10 +408,10 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
           height: obstacle.height,
         };
         const overlap =
-          robotRect.x < obstacleRect.x + obstacleRect.width &&
-          robotRect.x + robotRect.width > obstacleRect.x &&
-          robotRect.y < obstacleRect.y + obstacleRect.height &&
-          robotRect.y + robotRect.height > obstacleRect.y;
+          playerColliderRect.x < obstacleRect.x + obstacleRect.width &&
+          playerColliderRect.x + playerColliderRect.width > obstacleRect.x &&
+          playerColliderRect.y < obstacleRect.y + obstacleRect.height &&
+          playerColliderRect.y + playerColliderRect.height > obstacleRect.y;
         let isCollide = false;
         if (obstacle.type === 'low') {
           if (!isDucking && overlap) isCollide = true;
@@ -416,7 +423,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
           setTimeout(() => setCollidedObstacleId(null), 200);
           setGameState('gameOver');
           playSound('crash');
-          addParticles(robotRect.x + COLLIDER_WIDTH / 2, robotRect.y + robotRect.height / 2, 12);
+          addParticles(playerColliderRect.x + playerColliderRect.width / 2, playerColliderRect.y + playerColliderRect.height / 2, 12);
           return updated;
         }
       }
@@ -446,7 +453,9 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
           // Jika sudah diambil, tetap collected
           if (moved.collected) return moved;
           // Deteksi collision
-          const robotRect = { x: 500 + COLLIDER_X_OFFSET, y: 56 + robotY, width: COLLIDER_WIDTH, height: isDucking ? ROBOT_HEIGHT * 0.7 : ROBOT_HEIGHT };
+          const gameWidth = gameWorldRef.current ? gameWorldRef.current.offsetWidth : 800;
+          const robotX = gameWidth * 0.25;
+          const robotRect = { x: robotX + COLLIDER_X_OFFSET, y: 56 + robotY, width: COLLIDER_WIDTH, height: isDucking ? ROBOT_HEIGHT * 0.7 : ROBOT_HEIGHT };
           const coinRect = { x: moved.x, y: moved.y, width: 32, height: 32 };
           const overlap =
             robotRect.x < coinRect.x + coinRect.width &&
@@ -487,14 +496,14 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
       setRobotY(JUMP_HEIGHT);
       jumpLockRef.current = true;
       playSound('jump');
-      addParticles(100, JUMP_HEIGHT + ROBOT_HEIGHT, 3);
+      // Tidak ada addParticles di sini (hilangkan efek partikel lompat)
       setTimeout(() => {
         setRobotY(GROUND_Y);
         setIsJumping(false);
         jumpLockRef.current = false;
       }, JUMP_DURATION);
     }
-  }, [isJumping, playSound, addParticles]);
+  }, [isJumping, playSound]);
 
   const duck = useCallback(() => {
     // Allow duck anytime, even if jumping (cancel jump)
@@ -949,136 +958,204 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
 
   // Responsive game container
   return (
-    <div
-      className="relative w-screen h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 via-purple-900 to-black overflow-hidden"
-    >
-      {/* Background image absolutely behind all content */}
-      <img
-        src={cityBg}
-        alt="Cyberpunk City Background"
-        className="absolute inset-0 w-full h-full object-cover z-0 select-none pointer-events-none"
-        style={{ minHeight: '100vh', minWidth: '100vw', objectFit: 'cover', filter: 'brightness(0.7) saturate(1.2) blur(0.5px)' }}
-        draggable={false}
-      />
-      <div
-        className="relative bg-black rounded-xl overflow-hidden shadow-2xl border-2 border-cyan-400/20 flex flex-col"
-        style={{
-          aspectRatio: '16/9',
-          width: '100vw',
-          height: '100vh',
-          maxWidth: '100vw',
-          maxHeight: '100vh',
-          // Letterbox agar tidak terpotong
-          ...(window.innerWidth / window.innerHeight > 16 / 9
-            ? { width: `${window.innerHeight * 16 / 9}px`, height: '100vh' }
-            : { width: '100vw', height: `${window.innerWidth * 9 / 16}px` }),
-          margin: 'auto',
-          boxSizing: 'border-box',
-          background: 'black',
-        }}
-      >
-        {/* Top bar: Score, Coins, Pause */}
-        <div className="absolute top-4 left-4 right-4 z-20 flex flex-col sm:flex-row sm:justify-between items-center gap-4 px-2 md:px-8">
-          <div className="flex items-center gap-6 ml-auto">
-            <div className="text-white font-bold text-xl bg-black/50 px-4 py-2 rounded-lg border border-cyan-500/30 backdrop-blur-sm">
-              Score: <span className="text-cyan-400">{score}</span>
-            </div>
-            {/* Tampilkan coin di UI */}
-            <div className="flex items-center gap-2 text-yellow-300 font-bold text-xl bg-black/50 px-4 py-2 rounded-lg border border-yellow-400/30 backdrop-blur-sm">
-              <img src={coinImg} alt="Coin" className="w-6 h-6 mr-1 inline-block" />
-              {coinCount}
-            </div>
-            
-            <button
-              onClick={() => {
-                if (soundEnabled) playClick(sfxVolume);
-                setGameState(gameState === 'playing' ? 'paused' : 'playing');
-              }}
-              className="pause-btn flex items-center gap-2 px-4 py-2 bg-black/50 text-white rounded-lg border border-gray-600 hover:border-purple-400 transition-colors backdrop-blur-sm"
-            >
-              {gameState === 'playing' ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-            </button>
-          </div>
-        </div>
-        {/* Game Canvas Responsive */}
-        <div className="relative w-full flex-1 max-w-[100vw] min-h-[400px] md:min-h-[600px] lg:min-h-[700px] flex items-center justify-center">
-          {/* Ground hitam di bawah */}
-          <div className="absolute left-0 w-full" style={{height: '56px', background: 'linear-gradient(90deg, #a259ff 0%, #6a00ff 100%)', bottom: 0, zIndex: 20, boxShadow: '0 0 32px 8px #a259ff99'}} />
-          {/* Garis batas atas ground (ungu muda) */}
-          <div className="absolute left-0 w-full" style={{height: '0px', borderTop: '3px solid #e0aaff', bottom: '56px', zIndex: 25, pointerEvents: 'none'}} />
-          {/* Background elements */}
-          <div className="absolute inset-0 opacity-30">
-            {/* City skyline */}
-            <div className="absolute bottom-0 w-full h-32 bg-gradient-to-t from-gray-900 to-transparent"></div>
-            
-            {/* Grid floor */}
-            <div className="absolute bottom-0 w-full h-px bg-gradient-to-r from-transparent via-cyan-400 to-transparent"></div>
-            
-            {/* Moving background lines */}
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div
-                key={i}
-                className="absolute h-px bg-gradient-to-r from-transparent via-purple-400/30 to-transparent animate-pulse"
-                style={{
-                  top: `${20 + i * 15}%`,
-                  width: '100%',
-                  animationDelay: `${i * 0.5}s`
-                }}
-              ></div>
-            ))}
-          </div>
-
-          {/* Ground/alas baru */}
-          <div
-            className="absolute left-0 w-full"
+    <div className="relative w-screen h-screen flex items-center justify-center bg-black overflow-hidden font-sans">
+        {/* Container 16:9 utama dengan styling responsif yang benar */}
+        <div
+            className="relative bg-black overflow-hidden shadow-2xl border-2 border-cyan-400/20"
             style={{
-              bottom: 0,
-              height: '56px', // ground lebih tebal
-              background: 'black',
-              zIndex: 5,
+                aspectRatio: '16 / 9',
+                width: '100%',
+                height: '100%',
+                maxWidth: 'calc(100vh * (16 / 9))', // Letterbox (pilar di samping)
+                maxHeight: 'calc(100vw * (9 / 16))', // Pillarbox (pilar di atas/bawah)
+                margin: 'auto',
             }}
-          />
-          {/* END GROUND */}
-          {/* Game entities */}
-          <div className="absolute inset-0">
-            {/* Robot player */}
-            <Player
-              gameState={gameState}
-              isJumping={isJumping}
-              isDucking={isDucking}
-              runFrame={runFrame}
-              jumpFrame={jumpFrame}
-              duckFrame={duckFrame}
-              deathFrame={deathFrame}
-              robotY={robotY}
-              ROBOT_WIDTH={90}
-              ROBOT_HEIGHT={120}
-              collidedObstacleId={collidedObstacleId}
-              runFrames={runFrames}
-              jumpFrames={jumpFrames}
-              duckFrames={duckFrames}
-              deathFrames={deathFrames}
-              shieldBlink={shieldActive ? shieldBlink : false}
+        >
+            {/* Background image, berada di lapisan paling bawah */}
+            <img
+                src={cityBg}
+                alt="Cyberpunk City Background"
+                className="absolute inset-0 w-full h-full object-cover z-0"
+                draggable={false}
+                style={{ filter: 'brightness(0.7) saturate(1.2)' }}
             />
-            {/* Power-up icon di kepala karakter jika aktif */}
-            {(doubleCoinActive || doubleXpActive || shieldActive) && (
-              <div
-                style={{
-                  position: 'absolute',
-                  left: '500px',
-                  bottom: `${56 + robotY + 140}px`,
-                  display: 'flex',
-                  flexDirection: 'row',
-                  gap: '8px',
-                  zIndex: 30,
-                  pointerEvents: 'none',
-                  width: '90px',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  transition: 'bottom 0.1s',
-                }}
-              >
-                {doubleCoinActive && (
+
+            {/* Kontainer layout utama menggunakan Flexbox (flex-col) */}
+            <div className="relative w-full h-full flex flex-col z-10">
+                
+                {/* Top Bar (elemen flex pertama, tidak meregang) */}
+                <div className="flex-shrink-0 p-2 sm:p-4 flex justify-between items-start">
+                    {/* Power Up Bar di Kiri */}
+                    <div className="flex flex-col gap-2 sm:gap-4" style={{ zIndex: 50, pointerEvents: 'auto' }}>
+                        {/* Double Coin Power Up */}
+                        <div className="relative flex items-center">
+                            <div
+                                className="bg-[#181c2f] rounded-lg shadow-xl border-2 border-cyan-400/60 w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center relative cursor-pointer"
+                                onClick={async () => {
+                                    if (isMobile && !isPortrait && doubleCoinPowerUpId && userPowerUps[doubleCoinPowerUpId] > 0 && !doubleCoinActive) {
+                                        setUserPowerUps(prev => ({ ...prev, [doubleCoinPowerUpId]: prev[doubleCoinPowerUpId] - 1 }));
+                                        setDoubleCoinActive(true);
+                                        setDoubleCoinTimer(doubleCoinDuration);
+                                        if (powerupSfxRef.current && soundEnabled) powerupSfxRef.current.play();
+                                        try {
+                                            const userStr = localStorage.getItem('neonRunnerUser');
+                                            const token = localStorage.getItem('neonRunnerToken') || undefined;
+                                            if (userStr && token) {
+                                                const userObj = JSON.parse(userStr);
+                                                await usePowerUp(userObj.id, doubleCoinPowerUpId, token);
+                                            }
+                                        } catch {}
+                                    }
+                                }}
+                            >
+                                <img src={doublecoinIcon} alt="Double Coin" className="w-8 h-8 sm:w-10 sm:h-10" />
+                                <div className="absolute -bottom-2 -right-2 bg-cyan-400 rounded-full w-6 h-6 flex items-center justify-center border-2 sm:border-4 border-[#181c2f] text-white font-bold text-sm sm:text-base shadow-md">
+                                    {doubleCoinPowerUpId ? userPowerUps[doubleCoinPowerUpId] || 0 : 0}
+                                </div>
+                            </div>
+                        </div>
+                        {/* Double XP Power Up */}
+                        <div className="relative flex items-center">
+                            <div
+                                className="bg-[#181c2f] rounded-lg shadow-xl border-2 border-yellow-400/60 w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center relative cursor-pointer"
+                                onClick={async () => {
+                                    if (isMobile && !isPortrait && doubleXpPowerUpId && userPowerUps[doubleXpPowerUpId] > 0 && !doubleXpActive) {
+                                        setUserPowerUps(prev => ({ ...prev, [doubleXpPowerUpId]: prev[doubleXpPowerUpId] - 1 }));
+                                        setDoubleXpActive(true);
+                                        setDoubleXpTimer(doubleXpDuration);
+                                        if (powerupSfxRef.current && soundEnabled) powerupSfxRef.current.play();
+                                        try {
+                                            const userStr = localStorage.getItem('neonRunnerUser');
+                                            const token = localStorage.getItem('neonRunnerToken') || undefined;
+                                            if (userStr && token) {
+                                                const userObj = JSON.parse(userStr);
+                                                await usePowerUp(userObj.id, doubleXpPowerUpId, token);
+                                            }
+                                        } catch {}
+                                    }
+                                }}
+                            >
+                                <img src={doublexpIcon} alt="Double XP" className="w-8 h-8 sm:w-10 sm:h-10" />
+                                <div className="absolute -bottom-2 -right-2 bg-yellow-400 rounded-full w-6 h-6 flex items-center justify-center border-2 sm:border-4 border-[#181c2f] text-white font-bold text-sm sm:text-base shadow-md">
+                                    {doubleXpPowerUpId ? userPowerUps[doubleXpPowerUpId] || 0 : 0}
+                                </div>
+                            </div>
+                        </div>
+                        {/* Shield Power Up */}
+                        <div className="relative flex items-center">
+                            <div
+                                className="bg-[#181c2f] rounded-lg shadow-xl border-2 border-blue-400/60 w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center relative cursor-pointer"
+                                onClick={async () => {
+                                    if (isMobile && !isPortrait && shieldPowerUpId && userPowerUps[shieldPowerUpId] > 0 && !shieldActive) {
+                                        setUserPowerUps(prev => ({ ...prev, [shieldPowerUpId]: prev[shieldPowerUpId] - 1 }));
+                                        setShieldActive(true);
+                                        setShieldTimer(shieldDuration);
+                                        if (powerupSfxRef.current && soundEnabled) powerupSfxRef.current.play();
+                                        try {
+                                            const userStr = localStorage.getItem('neonRunnerUser');
+                                            const token = localStorage.getItem('neonRunnerToken') || undefined;
+                                            if (userStr && token) {
+                                                const userObj = JSON.parse(userStr);
+                                                await usePowerUp(userObj.id, shieldPowerUpId, token);
+                                            }
+                                        } catch {}
+                                    }
+                                }}
+                            >
+                                <img src={shieldIcon} alt="Shield" className="w-8 h-8 sm:w-10 sm:h-10" />
+                                <div className="absolute -bottom-2 -right-2 bg-blue-400 rounded-full w-6 h-6 flex items-center justify-center border-2 sm:border-4 border-[#181c2f] text-white font-bold text-sm sm:text-base shadow-md">
+                                    {shieldQty}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {/* Score/Coins di Kanan */}
+                    <div className="flex items-center gap-2 sm:gap-4">
+                        <div className="text-white font-bold text-base sm:text-xl bg-black/50 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg border border-cyan-500/30 backdrop-blur-sm">
+                            Score: <span className="text-cyan-400">{score}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-yellow-300 font-bold text-base sm:text-xl bg-black/50 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg border border-yellow-400/30 backdrop-blur-sm">
+                            <img src={coinImg} alt="Coin" className="w-5 h-5 sm:w-6 sm:h-6" />
+                            {coinCount}
+                        </div>
+                        <button
+                            onClick={() => {
+                                if (soundEnabled) playClick(sfxVolume);
+                                setGameState(gameState === 'playing' ? 'paused' : 'playing');
+                            }}
+                            className="p-2 sm:p-3 bg-black/50 text-white rounded-lg border border-gray-600 hover:border-purple-400 transition-colors backdrop-blur-sm"
+                        >
+                            {gameState === 'playing' ? <Pause className="w-4 h-4 sm:w-5 sm:h-5" /> : <Play className="w-4 h-4 sm:w-5 sm:h-5" />}
+                        </button>
+                    </div>
+                </div>
+
+                {/* Game Canvas (elemen flex kedua, meregang untuk mengisi sisa ruang) */}
+                <div
+                    ref={gameWorldRef}
+                    className="relative flex-1 w-full overflow-hidden"
+                    onTouchStart={e => {
+                        if (isMobile && !isPortrait && gameState === 'playing') {
+                            const touch = e.touches[0];
+                            const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
+                            const x = touch.clientX - rect.left;
+                            if (x < rect.width / 2) {
+                                // Touch kiri: lompat
+                                jump();
+                            } else {
+                                // Touch kanan: duck
+                                duck();
+                            }
+                        }
+                    }}
+                    style={{ touchAction: isMobile && !isPortrait ? 'manipulation' : undefined }}
+                >
+                    {/* Ground */}
+                    <div className="absolute left-0 bottom-0 w-full z-1" style={{ height: '56px', background: 'linear-gradient(90deg, #a259ff 0%, #6a00ff 100%)', boxShadow: '0 0 32px 8px #a259ff99' }} />
+                    <div className="absolute left-0 bottom-[56px] w-full border-t-2 border-purple-300 z-1" />
+
+                    {/* Game entities (Player, Obstacles, etc.) diposisikan relatif terhadap Game Canvas ini */}
+                    <Player
+                        gameState={gameState}
+                        isJumping={isJumping}
+                        isDucking={isDucking}
+                        runFrame={runFrame}
+                        jumpFrame={jumpFrame}
+                        duckFrame={duckFrame}
+                        deathFrame={deathFrame}
+                        robotY={robotY}
+                        ROBOT_WIDTH={90}
+                        ROBOT_HEIGHT={120}
+                        collidedObstacleId={collidedObstacleId}
+                        runFrames={runFrames}
+                        jumpFrames={jumpFrames}
+                        duckFrames={duckFrames}
+                        deathFrames={deathFrames}
+                        shieldBlink={shieldActive ? shieldBlink : false}
+                        leftFraction={0.25}
+                    />
+
+                    {/* Power-up icon di kepala karakter jika aktif */}
+                    {(doubleCoinActive || doubleXpActive || shieldActive) && (
+                        <div
+                            style={{
+                                position: 'absolute',
+                                left: gameWorldRef.current ? `calc(${gameWorldRef.current.offsetWidth * 0.25}px)` : '25%',
+                                transform: 'translateX(-50%)',
+                                bottom: `${56 + robotY + 140}px`, // Di atas kepala player
+                                display: 'flex',
+                                flexDirection: 'row',
+                                gap: '8px',
+                                zIndex: 30,
+                                pointerEvents: 'none',
+                                width: '90px',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                transition: 'bottom 0.1s',
+                            }}
+                        >
+                            {doubleCoinActive && (
                   <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                     <img
                       src={doublecoinIcon}
@@ -1129,106 +1206,90 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
                     </div>
                   </div>
                 )}
-              </div>
+                        </div>
+                    )}
+                    
+                    <Obstacles
+                        obstacles={obstacles}
+                        collidedObstacleId={collidedObstacleId}
+                        obstacleJumpImg={obstacleJumpImg}
+                        obstacleDuckImg={obstacleDuckImg}
+                    />
+                    
+                    <Particles particles={particles} />
+                    
+                    {coins.map(coin => !coin.collected && (
+                        <img
+                            key={coin.id}
+                            src={coinImg}
+                            alt="Coin"
+                            className="absolute select-none pointer-events-none"
+                            style={{
+                                left: `${coin.x}px`,
+                                bottom: `${coin.y}px`,
+                                width: '32px',
+                                height: '32px',
+                                zIndex: 9,
+                                filter: 'drop-shadow(0 0 8px #ff0a) drop-shadow(0 0 2px #fff8)'
+                            }}
+                            draggable={false}
+                        />
+                    ))}
+                </div>
+            </div>
+
+            {/* Overlays (Pause, Game Over) dan Touch Controls diposisikan absolut terhadap kontainer 16:9 utama */}
+            {isMobile && gameState === 'playing' && (
+                <div className="absolute inset-0 z-30">
+                    <div className="absolute left-0 top-0 w-1/2 h-full" onTouchStart={(e) => { e.preventDefault(); jump(); }}></div>
+                    <div className="absolute right-0 top-0 w-1/2 h-full" onTouchStart={(e) => { e.preventDefault(); duck(); }}></div>
+                </div>
             )}
-            {/* Obstacles */}
-            <Obstacles
-              obstacles={obstacles}
-              collidedObstacleId={collidedObstacleId}
-              obstacleJumpImg={obstacleJumpImg}
-              obstacleDuckImg={obstacleDuckImg}
-            />
-            {/* Particles */}
-            <Particles particles={particles} />
-            {/* Render coin di map */}
-            {coins.map(coin => !coin.collected && (
-              <img
-                key={coin.id}
-                src={coinImg}
-                alt="Coin"
-                className="absolute select-none pointer-events-none"
-                style={{
-                  left: `${coin.x}px`,
-                  bottom: `${coin.y}px`,
-                  width: '32px',
-                  height: '32px',
-                  zIndex: 9,
-                  filter: 'drop-shadow(0 0 8px #ff0a) drop-shadow(0 0 2px #fff8)'
-                }}
-                draggable={false}
-              />
-            ))}
-          </div>
+            
+            {gameState === 'paused' && countdownResume === null && (
+                <PauseScreen
+                    onResume={handleResumeWithCountdown}
+                    onBack={handleBackWithConfirm}
+                    soundEnabled={soundEnabled}
+                    sfxVolume={sfxVolume}
+                    musicVolume={musicVolume}
+                    onSoundSettingsChange={handleSoundSettingsChange}
+                    isMobile={isMobile}
+                    isPortrait={isPortrait}
+                />
+            )}
 
-          {/* Pause screen */}
-          {gameState === 'paused' && countdownResume === null && (
-            <PauseScreen
-              onResume={handleResumeWithCountdown}
-              onBack={handleBackWithConfirm}
-              soundEnabled={soundEnabled}
-              sfxVolume={sfxVolume}
-              musicVolume={musicVolume}
-              onSoundSettingsChange={handleSoundSettingsChange}
-              showExitWarning={true}
-            />
-          )}
-          {/* Countdown overlay saat resume dari pause */}
-          {countdownResume !== null && (
-            <div className="absolute inset-0 flex items-center justify-center z-50 bg-black/70 backdrop-blur-[2px]">
-              <div className="text-7xl font-extrabold text-cyan-300 drop-shadow-lg animate-pulse">
-                {countdownResume === 0 ? 'GO!' : countdownResume}
-              </div>
-            </div>
-          )}
-          {/* Game Over screen */}
-          {gameState === 'gameOver' && (
-            <GameOverScreen
-              score={score}
-              coinCount={coinCount}
-              onBack={onBack}
-              onRestart={resetGame}
-              submitting={submitting}
-              submitError={submitError}
-            />
-          )}
+            {countdownResume !== null && (
+                <div className="absolute inset-0 flex items-center justify-center z-50 bg-black/70 backdrop-blur-[2px]">
+                    <div className="text-7xl font-extrabold text-cyan-300 drop-shadow-lg animate-pulse">
+                        {countdownResume === 0 ? 'GO!' : countdownResume}
+                    </div>
+                </div>
+            )}
 
-          {/* Power Up Bar */}
-          <div className="absolute left-4 top-4 z-30 flex flex-col gap-5">
-            {/* Double Coin Power Up */}
-            <div className="relative flex items-center justify-center">
-              <div className="bg-[#181c2f] rounded-2xl shadow-xl border-2 border-cyan-400/60 w-20 h-20 flex items-center justify-center relative">
-                <img src={doublecoinIcon} alt="Double Coin" className="w-12 h-12" />
-                <div className="absolute -bottom-2 -right-2 bg-cyan-400 rounded-full w-8 h-8 flex items-center justify-center border-4 border-[#181c2f] text-white font-bold text-lg shadow-md">
-                  {doubleCoinPowerUpId ? userPowerUps[doubleCoinPowerUpId] || 0 : 0}
+            {gameState === 'gameOver' && (
+                <GameOverScreen
+                    score={score}
+                    coinCount={coinCount}
+                    onBack={onBack}
+                    onRestart={resetGame}
+                    submitting={submitting}
+                    submitError={submitError}
+                    isMobile={isMobile}
+                    isPortrait={isPortrait}
+                />
+            )}
+
+            {/* Overlay instruksi touch untuk mobile landscape */}
+            {isMobile && !isPortrait && (
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-40 bg-black/70 px-4 py-2 rounded-xl border border-cyan-400 text-cyan-200 text-base font-semibold shadow-lg select-none pointer-events-none animate-fade-in">
+                    Touch left side to <span className="text-cyan-300">jump</span>, right side to <span className="text-cyan-300">duck</span>
                 </div>
-              </div>
-              <span className="ml-4 text-cyan-300 text-xs font-semibold">Press 1</span>
-            </div>
-            {/* Double XP Power Up */}
-            <div className="relative flex items-center justify-center">
-              <div className="bg-[#181c2f] rounded-2xl shadow-xl border-2 border-yellow-400/60 w-20 h-20 flex items-center justify-center relative">
-                <img src={doublexpIcon} alt="Double XP" className="w-12 h-12" />
-                <div className="absolute -bottom-2 -right-2 bg-yellow-400 rounded-full w-8 h-8 flex items-center justify-center border-4 border-[#181c2f] text-white font-bold text-lg shadow-md">
-                  {doubleXpPowerUpId ? userPowerUps[doubleXpPowerUpId] || 0 : 0}
-                </div>
-              </div>
-              <span className="ml-4 text-yellow-200 text-xs font-semibold">Press 2</span>
-            </div>
-            {/* Shield Power Up */}
-            <div className="relative flex items-center justify-center">
-              <div className="bg-[#181c2f] rounded-2xl shadow-xl border-2 border-blue-400/60 w-20 h-20 flex items-center justify-center relative">
-                <img src={shieldIcon} alt="Shield" className="w-12 h-12" />
-                <div className="absolute -bottom-2 -right-2 bg-blue-400 rounded-full w-8 h-8 flex items-center justify-center border-4 border-[#181c2f] text-white font-bold text-lg shadow-md">
-                  {shieldQty}
-                </div>
-              </div>
-              <span className="ml-4 text-blue-200 text-xs font-semibold">Press 3</span>
-            </div>
-          </div>
+            )}
         </div>
-      </div>
     </div>
-  );
+);
+
 };
 
 export default GameScreen;
