@@ -32,6 +32,7 @@ function App() {
   const [sfxVolume, setSfxVolume] = useState(0.8);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [shopSuccess, setShopSuccess] = useState<string | null>(null);
+  const [lastOrientation, setLastOrientation] = useState<{ isMobile: boolean; isPortrait: boolean } | null>(null);
 
   const navigate = useNavigate();
 
@@ -136,9 +137,10 @@ function App() {
     } catch (e) {}
   };
 
-  const handlePlayNow = () => {
+  const handlePlayNow = (orientation?: { isMobile: boolean; isPortrait: boolean }) => {
     if (user) {
-      navigate('/game');
+      if (orientation) setLastOrientation(orientation);
+      navigate('/game', { state: orientation });
     } else {
       navigate('/login');
     }
@@ -219,7 +221,7 @@ function App() {
         <Route path="/home" element={
           <HomeScreen
             user={user}
-            onPlayNow={handlePlayNow}
+            onPlayNow={(orientation) => handlePlayNow(orientation)}
             onSettings={() => navigate('/settings')}
             onLeaderboard={() => navigate('/leaderboard')}
             onLogout={handleLogout}
@@ -238,12 +240,14 @@ function App() {
           user ? (
             <GameScreen
               user={user}
-              onGameOver={async (score: number) => { await updateHighScore(score); }}
+              onGameOver={async (score: number, coinsCollected: number) => { await updateHighScore(score); }}
               onBack={() => navigate('/home')}
               soundEnabled={soundEnabled}
               sfxVolume={sfxVolume}
               musicVolume={musicVolume}
               onSoundSettingsChange={handleSoundSettingsChange}
+              // Pass orientation state from navigation if available
+              orientationState={lastOrientation}
             />
           ) : (
             <Navigate to="/home" replace />

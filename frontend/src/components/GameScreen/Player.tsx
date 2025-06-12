@@ -22,6 +22,7 @@ interface PlayerProps {
   redShine?: boolean; // Red shine effect
   goldShine?: boolean; // Gold shine effect
   shieldBlink?: boolean; // Blinking effect for shield
+  left?: number | string; // NEW: horizontal position override
 }
 
 const Player: React.FC<PlayerProps> = ({
@@ -43,11 +44,12 @@ const Player: React.FC<PlayerProps> = ({
   redShine = false,
   goldShine = false,
   shieldBlink = false,
+  left = '500px', // NEW: default to previous value
 }) => (
   <div
     className="absolute transition-all duration-100"
     style={{
-      left: '500px',
+      left: typeof left === 'number' ? `${left}px` : left,
       bottom: `${56 + robotY}px`,
       width: `${ROBOT_WIDTH}px`,
       height: `${isDucking ? ROBOT_HEIGHT * 0.7 : ROBOT_HEIGHT}px`,

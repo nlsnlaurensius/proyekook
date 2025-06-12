@@ -21,10 +21,8 @@ import Obstacles from './GameScreen/Obstacles';
 import Particles from './GameScreen/Particles';
 import PauseScreen from './GameScreen/PauseScreen';
 import GameOverScreen from './GameScreen/GameOverScreen';
-import Background from './GameScreen/Background';
 import { importAll } from './GameScreen/utils';
 import { playClick } from '../utils/clickSound';
-
 // Animation frames (must be top-level for use in both logic and props)
 const runFrames = importAll(import.meta.glob('../assets/run/*.png', { eager: true, as: 'url' })).sort();
 const jumpFrames = importAll(import.meta.glob('../assets/jump/*.png', { eager: true, as: 'url' })).sort();
@@ -50,8 +48,21 @@ const OBSTACLE_TYPES: ObstacleType['type'][] = ['low', 'high'];
 const COLLIDER_WIDTH = ROBOT_WIDTH * 0.8; // 80% dari lebar asli
 const COLLIDER_X_OFFSET = (ROBOT_WIDTH - COLLIDER_WIDTH) / 2;
 
-const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, soundEnabled, sfxVolume, musicVolume, onSoundSettingsChange }) => {
-  const [gameState, setGameState] = useState<GameState>('playing');
+const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, soundEnabled, sfxVolume, musicVolume, onSoundSettingsChange, orientationState }) => {
+  const [gameState, setGameState] = useState<GameState>(() => {
+    // Use orientationState if provided (from HomeScreen/App), otherwise fallback to window check
+    if (orientationState) {
+      if (orientationState.isMobile && orientationState.isPortrait) return 'paused';
+      if (orientationState.isMobile && !orientationState.isPortrait) return 'playing';
+      return 'playing';
+    }
+    // Fallback: check window
+    const isMobileDevice = typeof window !== 'undefined' && window.innerWidth <= 1024;
+    const isPortrait = typeof window !== 'undefined' && window.innerHeight > window.innerWidth;
+    if (isMobileDevice && isPortrait) return 'paused';
+    if (isMobileDevice && !isPortrait) return 'playing';
+    return 'playing';
+  });
   const [score, setScore] = useState(0);
   const [robotY, setRobotY] = useState(GROUND_Y); // Mulai di ground
   const [isJumping, setIsJumping] = useState(false);
@@ -85,10 +96,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
   const [shieldDuration, setShieldDuration] = useState(5); // default duration (seconds)
   const [shieldPowerUpId, setShieldPowerUpId] = useState<number | null>(null);
   const [countdownResume, setCountdownResume] = useState<number | null>(null);
-  // Add shieldBlink state (for shield blinking effect)
-  const [shieldBlink, setShieldBlink] = useState(false);
-  const [isPortrait, setIsPortrait] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
 
   // Sinkronkan ke parent jika berubah (opsional, jika ingin update ke parent tambahkan callback di props)
   useEffect(() => {
@@ -694,16 +701,207 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
     fetchPowerUps();
   }, []);
 
-  // --- On-screen jump/duck buttons for mobile/tablet ---
-  // Helper: detect if device is desktop
-  // const isDesktop = typeof window !== 'undefined' && window.matchMedia('(pointer:fine)').matches;
+  // Keyboard: tombol 1 untuk double coin
+  useEffect(() => {
+    const handleKeyDown = async (e: KeyboardEvent) => {
+      if (e.repeat) return;
+      if (gameState !== 'playing') return;
+      if (e.code === 'Digit1') {
+        const doubleCoinPowerUpId = powerUpList.find((pu: any) => pu.name.toLowerCase().includes('coin'))?.id;
+        if (doubleCoinPowerUpId && userPowerUps[doubleCoinPowerUpId] > 0 && !doubleCoinActive) {
+          setUserPowerUps(prev => ({ ...prev, [doubleCoinPowerUpId]: prev[doubleCoinPowerUpId] - 1 }));
+          setDoubleCoinActive(true);
+          setDoubleCoinTimer(doubleCoinDuration);
+          if (powerupSfxRef.current && soundEnabled) powerupSfxRef.current.play();
+          // Update DB
+          try {
+            const userStr = localStorage.getItem('neonRunnerUser');
+            const token = localStorage.getItem('neonRunnerToken') || undefined;
+            if (userStr && token) {
+              const userObj = JSON.parse(userStr);
+              await usePowerUp(userObj.id, doubleCoinPowerUpId, token);
+            }
+          } catch {}
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [powerUpList, userPowerUps, doubleCoinActive, doubleCoinDuration, gameState, soundEnabled]);
 
-  // Ensure doubleCoinPowerUpId, doubleCoinQty, doubleXpPowerUpId, doubleXpQty, shieldPowerUpId, shieldQty are defined before use
+  // Keyboard: tombol 2 untuk double xp
+  useEffect(() => {
+    const handleKeyDown = async (e: KeyboardEvent) => {
+      if (e.repeat) return;
+      if (gameState !== 'playing') return;
+      if (e.code === 'Digit2') {
+        const doubleXpPowerUpId = powerUpList.find((pu: any) => pu.name.toLowerCase().includes('xp'))?.id;
+        if (doubleXpPowerUpId && userPowerUps[doubleXpPowerUpId] > 0 && !doubleXpActive) {
+          setUserPowerUps(prev => ({ ...prev, [doubleXpPowerUpId]: prev[doubleXpPowerUpId] - 1 }));
+          setDoubleXpActive(true);
+          setDoubleXpTimer(doubleXpDuration);
+          if (powerupSfxRef.current && soundEnabled) powerupSfxRef.current.play();
+          // Update DB
+          try {
+            const userStr = localStorage.getItem('neonRunnerUser');
+            const token = localStorage.getItem('neonRunnerToken') || undefined;
+            if (userStr && token) {
+              const userObj = JSON.parse(userStr);
+              await usePowerUp(userObj.id, doubleXpPowerUpId, token);
+            }
+          } catch {}
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [powerUpList, userPowerUps, doubleXpActive, doubleXpDuration, gameState, soundEnabled]);
+
+  // Keyboard: tombol 3 untuk shield
+  useEffect(() => {
+    const handleKeyDown = async (e: KeyboardEvent) => {
+      if (e.repeat) return;
+      if (gameState !== 'playing') return;
+      if (e.code === 'Digit3') {
+        if (shieldPowerUpId && userPowerUps[shieldPowerUpId] > 0 && !shieldActive) {
+          setUserPowerUps(prev => ({ ...prev, [shieldPowerUpId]: prev[shieldPowerUpId] - 1 }));
+          setShieldActive(true);
+          setShieldTimer(shieldDuration);
+          if (powerupSfxRef.current && soundEnabled) powerupSfxRef.current.play();
+          // Update DB
+          try {
+            const userStr = localStorage.getItem('neonRunnerUser');
+            const token = localStorage.getItem('neonRunnerToken') || undefined;
+            if (userStr && token) {
+              const userObj = JSON.parse(userStr);
+              await usePowerUp(userObj.id, shieldPowerUpId, token);
+            }
+          } catch {}
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [shieldPowerUpId, userPowerUps, shieldActive, shieldDuration, gameState, soundEnabled]);
+
+  // Power up langsung habis saat mati
+  useEffect(() => {
+    if (gameState === 'gameOver' && doubleCoinActive) {
+      setDoubleCoinActive(false);
+      setDoubleCoinTimer(0);
+    }
+    if (gameState === 'gameOver' && doubleXpActive) {
+      setDoubleXpActive(false);
+      setDoubleXpTimer(0);
+    }
+    if (gameState === 'gameOver' && shieldActive) {
+      setShieldActive(false);
+      setShieldTimer(0);
+    }
+  }, [gameState, doubleCoinActive, doubleXpActive, shieldActive]);
+
+  // Power up timer effect: decrease timer every second when active
+  useEffect(() => {
+    if (!doubleCoinActive) return;
+    if (doubleCoinTimer <= 0) {
+      setDoubleCoinActive(false);
+      setDoubleCoinTimer(0);
+      return;
+    }
+    const interval = setInterval(() => {
+      setDoubleCoinTimer((prev) => {
+        if (prev <= 1) {
+          setDoubleCoinActive(false);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [doubleCoinActive, doubleCoinTimer]);
+
+  useEffect(() => {
+    if (!doubleXpActive) return;
+    if (doubleXpTimer <= 0) {
+      setDoubleXpActive(false);
+      setDoubleXpTimer(0);
+      return;
+    }
+    const interval = setInterval(() => {
+      setDoubleXpTimer((prev) => {
+        if (prev <= 1) {
+          setDoubleXpActive(false);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [doubleXpActive, doubleXpTimer]);
+
+  useEffect(() => {
+    if (!shieldActive) return;
+    if (shieldTimer <= 0) {
+      setShieldActive(false);
+      setShieldTimer(0);
+      return;
+    }
+    const interval = setInterval(() => {
+      setShieldTimer((prev) => {
+        if (prev <= 1) {
+          setShieldActive(false);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [shieldActive, shieldTimer]);
+
+  // Helper: XP multiplier state
+  const [xp, setXp] = useState(0);
+
+  // XP gain logic (example, replace with your XP gain trigger)
+  const gainXp = (baseXp: number) => {
+    let multiplier = 1;
+    if (doubleXpActive) multiplier = doubleXpEffect;
+    setXp(x => x + baseXp * multiplier);
+  };
+
+  // Power up bar UI:
   const doubleCoinPowerUpId = powerUpList.find(pu => pu.name.toLowerCase().includes('coin'))?.id;
   const doubleCoinQty = doubleCoinPowerUpId ? userPowerUps[doubleCoinPowerUpId] || 0 : 0;
   const doubleXpPowerUpId = powerUpList.find(pu => pu.name.toLowerCase().includes('xp'))?.id;
   const doubleXpQty = doubleXpPowerUpId ? userPowerUps[doubleXpPowerUpId] || 0 : 0;
-  const shieldQty = shieldPowerUpId ? userPowerUps[shieldPowerUpId!] || 0 : 0;
+  const shieldQty = shieldPowerUpId ? userPowerUps[shieldPowerUpId] || 0 : 0;
+
+  // Blinking effect for shield: toggle every 300ms when shieldActive
+  const [shieldBlink, setShieldBlink] = useState(false);
+  useEffect(() => {
+    if (!shieldActive) {
+      setShieldBlink(false);
+      return;
+    }
+    let visible = true;
+    const interval = setInterval(() => {
+      visible = !visible;
+      setShieldBlink(visible);
+    }, 300); // was 120, now slower
+    return () => clearInterval(interval);
+  }, [shieldActive]);
+
+  // Warn user before leaving/refreshing if game is still running
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (gameState === 'playing') {
+        e.preventDefault();
+        e.returnValue = 'Your game session will not be saved if you leave or reload the page.';
+        return e.returnValue;
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [gameState]);
 
   // Handler konfirmasi keluar (back to home/menu) saat game masih berjalan
   const handleBackWithConfirm = useCallback(() => {
@@ -714,12 +912,13 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
     onBack();
   }, [gameState, onBack]);
 
-  useEffect(() => {
-    // Detect orientation and device type
+  const [isPortrait, setIsPortrait] = React.useState(false);
+  const [isMobile, setIsMobile] = React.useState(false);
+  React.useEffect(() => {
     function handleResize() {
       const portrait = window.innerHeight > window.innerWidth;
       setIsPortrait(portrait);
-      setIsMobile(window.innerWidth <= 900); // treat as mobile/tablet
+      setIsMobile(window.innerWidth <= 1024); // iPad/tablet/mobile
     }
     handleResize();
     window.addEventListener('resize', handleResize);
@@ -730,23 +929,54 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
     };
   }, []);
 
-  return (
-    <div className="relative w-full h-full min-h-screen bg-gradient-to-br from-[#1a1a2e] via-[#23234d] to-[#0f3460] overflow-hidden">
-      {/* Overlay for portrait mode on mobile/tablet */}
-      {isMobile && isPortrait && (
-        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black/90 text-white text-center px-8">
-          <div className="text-3xl font-bold mb-4">Putar perangkat Anda</div>
-          <div className="text-lg mb-6">Untuk memainkan game ini, silakan ubah ke mode <span className='text-cyan-300 font-bold'>landscape</span> (horizontal).</div>
-          <svg width="80" height="80" fill="none" viewBox="0 0 80 80" className="mx-auto mb-4 animate-bounce">
-            <rect x="10" y="25" width="60" height="30" rx="8" fill="#23234d" stroke="#38bdf8" strokeWidth="4"/>
-            <path d="M 40 10 Q 60 20 70 40" stroke="#38bdf8" strokeWidth="4" fill="none"/>
-            <polygon points="70,40 65,38 67,44" fill="#38bdf8" />
+  // Overlay instruksi rotate jika mobile/tablet dan portrait
+  if (isMobile && isPortrait) {
+    return (
+      <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 via-purple-900 to-black">
+        <div className="flex flex-col items-center justify-center gap-8 animate-fade-in">
+          <svg width="96" height="96" viewBox="0 0 96 96" fill="none" className="mb-4 animate-bounce">
+            <rect x="16" y="32" width="64" height="32" rx="8" fill="#0ff" fillOpacity="0.15" stroke="#0ff" strokeWidth="4" />
+            <rect x="32" y="40" width="32" height="16" rx="4" fill="#fff" fillOpacity="0.2" />
+            <path d="M48 16v8M48 72v8M80 48h-8M24 48h-8" stroke="#0ff" strokeWidth="4" strokeLinecap="round" />
+            <path d="M72 72l8 8M24 24l-8-8" stroke="#0ff" strokeWidth="4" strokeLinecap="round" />
           </svg>
-          <div className="text-base text-gray-300">Game hanya dapat dimainkan dalam mode landscape.</div>
+          <h2 className="text-2xl md:text-3xl font-extrabold text-cyan-300 neon-glow drop-shadow-lg animate-pulse select-none text-center">Rotate your device<br />to landscape</h2>
+          <p className="text-cyan-100 text-center text-lg max-w-xs">Untuk pengalaman bermain terbaik, silakan putar layar ke mode landscape.</p>
         </div>
-      )}
-      {/* Main game content, scaled down on small landscape screens */}
-      <div className={isMobile && !isPortrait ? 'scale-[0.85] origin-top w-full h-full' : ''}>
+      </div>
+    );
+  }
+
+  // Responsive game container
+  return (
+    <div
+      className="relative w-screen h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 via-purple-900 to-black overflow-hidden"
+    >
+      {/* Background image absolutely behind all content */}
+      <img
+        src={cityBg}
+        alt="Cyberpunk City Background"
+        className="absolute inset-0 w-full h-full object-cover z-0 select-none pointer-events-none"
+        style={{ minHeight: '100vh', minWidth: '100vw', objectFit: 'cover', filter: 'brightness(0.7) saturate(1.2) blur(0.5px)' }}
+        draggable={false}
+      />
+      <div
+        className="relative bg-black rounded-xl overflow-hidden shadow-2xl border-2 border-cyan-400/20 flex flex-col"
+        style={{
+          aspectRatio: '16/9',
+          width: '100vw',
+          height: '100vh',
+          maxWidth: '100vw',
+          maxHeight: '100vh',
+          // Letterbox agar tidak terpotong
+          ...(window.innerWidth / window.innerHeight > 16 / 9
+            ? { width: `${window.innerHeight * 16 / 9}px`, height: '100vh' }
+            : { width: '100vw', height: `${window.innerWidth * 9 / 16}px` }),
+          margin: 'auto',
+          boxSizing: 'border-box',
+          background: 'black',
+        }}
+      >
         {/* Top bar: Score, Coins, Pause */}
         <div className="absolute top-4 left-4 right-4 z-20 flex flex-col sm:flex-row sm:justify-between items-center gap-4 px-2 md:px-8">
           <div className="flex items-center gap-6 ml-auto">
@@ -840,7 +1070,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
                   display: 'flex',
                   flexDirection: 'row',
                   gap: '8px',
-                  zIndex: 201,
+                  zIndex: 30,
                   pointerEvents: 'none',
                   width: '90px',
                   justifyContent: 'center',
@@ -930,149 +1160,71 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
             ))}
           </div>
 
-          {/* Cyberpunk city background (parallax) */}
-          <Background cityBg={cityBg} />
-        </div>
+          {/* Pause screen */}
+          {gameState === 'paused' && countdownResume === null && (
+            <PauseScreen
+              onResume={handleResumeWithCountdown}
+              onBack={handleBackWithConfirm}
+              soundEnabled={soundEnabled}
+              sfxVolume={sfxVolume}
+              musicVolume={musicVolume}
+              onSoundSettingsChange={handleSoundSettingsChange}
+              showExitWarning={true}
+            />
+          )}
+          {/* Countdown overlay saat resume dari pause */}
+          {countdownResume !== null && (
+            <div className="absolute inset-0 flex items-center justify-center z-50 bg-black/70 backdrop-blur-[2px]">
+              <div className="text-7xl font-extrabold text-cyan-300 drop-shadow-lg animate-pulse">
+                {countdownResume === 0 ? 'GO!' : countdownResume}
+              </div>
+            </div>
+          )}
+          {/* Game Over screen */}
+          {gameState === 'gameOver' && (
+            <GameOverScreen
+              score={score}
+              coinCount={coinCount}
+              onBack={onBack}
+              onRestart={resetGame}
+              submitting={submitting}
+              submitError={submitError}
+            />
+          )}
 
-        {/* Pause screen */}
-        {gameState === 'paused' && countdownResume === null && (
-          <PauseScreen
-            onResume={handleResumeWithCountdown}
-            onBack={handleBackWithConfirm}
-            soundEnabled={soundEnabled}
-            sfxVolume={sfxVolume}
-            musicVolume={musicVolume}
-            onSoundSettingsChange={handleSoundSettingsChange}
-            showExitWarning={true}
-          />
-        )}
-        {/* Countdown overlay saat resume dari pause */}
-        {countdownResume !== null && (
-          <div className="absolute inset-0 flex items-center justify-center z-50 bg-black/70 backdrop-blur-[2px]">
-            <div className="text-7xl font-extrabold text-cyan-300 drop-shadow-lg animate-pulse">
-              {countdownResume === 0 ? 'GO!' : countdownResume}
+          {/* Power Up Bar */}
+          <div className="absolute left-4 top-4 z-30 flex flex-col gap-5">
+            {/* Double Coin Power Up */}
+            <div className="relative flex items-center justify-center">
+              <div className="bg-[#181c2f] rounded-2xl shadow-xl border-2 border-cyan-400/60 w-20 h-20 flex items-center justify-center relative">
+                <img src={doublecoinIcon} alt="Double Coin" className="w-12 h-12" />
+                <div className="absolute -bottom-2 -right-2 bg-cyan-400 rounded-full w-8 h-8 flex items-center justify-center border-4 border-[#181c2f] text-white font-bold text-lg shadow-md">
+                  {doubleCoinPowerUpId ? userPowerUps[doubleCoinPowerUpId] || 0 : 0}
+                </div>
+              </div>
+              <span className="ml-4 text-cyan-300 text-xs font-semibold">Press 1</span>
+            </div>
+            {/* Double XP Power Up */}
+            <div className="relative flex items-center justify-center">
+              <div className="bg-[#181c2f] rounded-2xl shadow-xl border-2 border-yellow-400/60 w-20 h-20 flex items-center justify-center relative">
+                <img src={doublexpIcon} alt="Double XP" className="w-12 h-12" />
+                <div className="absolute -bottom-2 -right-2 bg-yellow-400 rounded-full w-8 h-8 flex items-center justify-center border-4 border-[#181c2f] text-white font-bold text-lg shadow-md">
+                  {doubleXpPowerUpId ? userPowerUps[doubleXpPowerUpId] || 0 : 0}
+                </div>
+              </div>
+              <span className="ml-4 text-yellow-200 text-xs font-semibold">Press 2</span>
+            </div>
+            {/* Shield Power Up */}
+            <div className="relative flex items-center justify-center">
+              <div className="bg-[#181c2f] rounded-2xl shadow-xl border-2 border-blue-400/60 w-20 h-20 flex items-center justify-center relative">
+                <img src={shieldIcon} alt="Shield" className="w-12 h-12" />
+                <div className="absolute -bottom-2 -right-2 bg-blue-400 rounded-full w-8 h-8 flex items-center justify-center border-4 border-[#181c2f] text-white font-bold text-lg shadow-md">
+                  {shieldQty}
+                </div>
+              </div>
+              <span className="ml-4 text-blue-200 text-xs font-semibold">Press 3</span>
             </div>
           </div>
-        )}
-        {/* Game Over screen */}
-        {gameState === 'gameOver' && (
-          <GameOverScreen
-            score={score}
-            coinCount={coinCount}
-            onBack={onBack}
-            onRestart={resetGame}
-            submitting={submitting}
-            submitError={submitError}
-          />
-        )}
-
-        {/* Power Up Bar */}
-        <div className="absolute left-4 top-4 z-30 flex flex-col gap-5">
-          {/* Double Coin Power Up */}
-          <div className="relative flex items-center justify-center">
-            <button
-              className="bg-[#181c2f] rounded-2xl shadow-xl border-2 border-cyan-400/60 w-20 h-20 flex items-center justify-center relative focus:outline-none focus:ring-2 focus:ring-cyan-400/60 hover:scale-105 transition-transform"
-              disabled={doubleCoinActive || doubleCoinQty === 0 || gameState !== 'playing'}
-              onClick={async () => {
-                if (doubleCoinActive || doubleCoinQty === 0 || gameState !== 'playing') return;
-                setUserPowerUps(prev => ({ ...prev, [doubleCoinPowerUpId!]: prev[doubleCoinPowerUpId!] - 1 }));
-                setDoubleCoinActive(true);
-                setDoubleCoinTimer(doubleCoinDuration);
-                if (powerupSfxRef.current && soundEnabled) powerupSfxRef.current.play();
-                // Update DB
-                try {
-                  const userStr = localStorage.getItem('neonRunnerUser');
-                  const token = localStorage.getItem('neonRunnerToken') || undefined;
-                  if (userStr && token) {
-                    const userObj = JSON.parse(userStr);
-                    await usePowerUp(userObj.id, doubleCoinPowerUpId!, token);
-                  }
-                } catch {}
-              }}
-            >
-              <img src={doublecoinIcon} alt="Double Coin" className="w-12 h-12" />
-              <div className="absolute -bottom-2 -right-2 bg-cyan-400 rounded-full w-8 h-8 flex items-center justify-center border-4 border-[#181c2f] text-white font-bold text-lg shadow-md">
-                {doubleCoinQty}
-              </div>
-            </button>
-          </div>
-          {/* Double XP Power Up */}
-          <div className="relative flex items-center justify-center">
-            <button
-              className="bg-[#181c2f] rounded-2xl shadow-xl border-2 border-yellow-400/60 w-20 h-20 flex items-center justify-center relative focus:outline-none focus:ring-2 focus:ring-yellow-400/60 hover:scale-105 transition-transform"
-              disabled={doubleXpActive || doubleXpQty === 0 || gameState !== 'playing'}
-              onClick={async () => {
-                if (doubleXpActive || doubleXpQty === 0 || gameState !== 'playing') return;
-                setUserPowerUps(prev => ({ ...prev, [doubleXpPowerUpId!]: prev[doubleXpPowerUpId!] - 1 }));
-                setDoubleXpActive(true);
-                setDoubleXpTimer(doubleXpDuration);
-                if (powerupSfxRef.current && soundEnabled) powerupSfxRef.current.play();
-                // Update DB
-                try {
-                  const userStr = localStorage.getItem('neonRunnerUser');
-                  const token = localStorage.getItem('neonRunnerToken') || undefined;
-                  if (userStr && token) {
-                    const userObj = JSON.parse(userStr);
-                    await usePowerUp(userObj.id, doubleXpPowerUpId!, token);
-                  }
-                } catch {}
-              }}
-            >
-              <img src={doublexpIcon} alt="Double XP" className="w-12 h-12" />
-              <div className="absolute -bottom-2 -right-2 bg-yellow-400 rounded-full w-8 h-8 flex items-center justify-center border-4 border-[#181c2f] text-white font-bold text-lg shadow-md">
-                {doubleXpQty}
-              </div>
-            </button>
-          </div>
-          {/* Shield Power Up */}
-          <div className="relative flex items-center justify-center">
-            <button
-              className="bg-[#181c2f] rounded-2xl shadow-xl border-2 border-blue-400/60 w-20 h-20 flex items-center justify-center relative focus:outline-none focus:ring-2 focus:ring-blue-400/60 hover:scale-105 transition-transform"
-              disabled={shieldActive || shieldQty === 0 || gameState !== 'playing'}
-              onClick={async () => {
-                if (shieldActive || shieldQty === 0 || gameState !== 'playing' || !shieldPowerUpId) return;
-                setUserPowerUps(prev => ({ ...prev, [shieldPowerUpId]: prev[shieldPowerUpId] - 1 }));
-                setShieldActive(true);
-                setShieldTimer(shieldDuration);
-                if (powerupSfxRef.current && soundEnabled) powerupSfxRef.current.play();
-                // Update DB
-                try {
-                  const userStr = localStorage.getItem('neonRunnerUser');
-                  const token = localStorage.getItem('neonRunnerToken') || undefined;
-                  if (userStr && token) {
-                    const userObj = JSON.parse(userStr);
-                    await usePowerUp(userObj.id, shieldPowerUpId, token);
-                  }
-                } catch {}
-              }}
-            >
-              <img src={shieldIcon} alt="Shield" className="w-12 h-12" />
-              <div className="absolute -bottom-2 -right-2 bg-blue-400 rounded-full w-8 h-8 flex items-center justify-center border-4 border-[#181c2f] text-white font-bold text-lg shadow-md">
-                {shieldQty}
-              </div>
-            </button>
-          </div>
-        </div>
-        {/* On-screen jump/duck buttons for mobile/tablet only */}
-        <div className="fixed bottom-6 right-6 z-40 flex flex-col gap-4 md:hidden">
-          <button
-            className="bg-gray-500/40 text-white rounded-full shadow-lg w-20 h-20 flex items-center justify-center text-3xl font-extrabold border-4 border-gray-300/40 active:scale-95 transition-transform backdrop-blur-sm"
-            onTouchStart={jump}
-            onClick={jump}
-            aria-label="Jump"
-            disabled={gameState !== 'playing'}
-          >
-            ↑
-          </button>
-          <button
-            className="bg-gray-500/40 text-white rounded-full shadow-lg w-20 h-20 flex items-center justify-center text-3xl font-extrabold border-4 border-gray-300/40 active:scale-95 transition-transform backdrop-blur-sm"
-            onTouchStart={duck}
-            onClick={duck}
-            aria-label="Duck"
-            disabled={gameState !== 'playing'}
-          >
-            ↓
-          </button>
         </div>
       </div>
     </div>

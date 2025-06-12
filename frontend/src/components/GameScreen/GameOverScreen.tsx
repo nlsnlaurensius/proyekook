@@ -19,7 +19,7 @@ const GameOverScreen: React.FC<GameOverScreenProps> = ({
   submitError,
   isHighScore = false, // default false
 }) => (
-  <div className="absolute inset-0 bg-black/80 backdrop-blur-[2px] flex items-center justify-center z-30">
+  <div className="absolute inset-0 bg-black/80 backdrop-blur-[2px] flex items-center justify-center z-50">
     <div className="mx-auto w-full max-w-xs bg-gradient-to-br from-[#1a1a2e] via-[#23234d] to-[#0f3460] rounded-2xl shadow-2xl border-2 border-cyan-400/40 p-8 flex flex-col items-center gap-6 animate-fade-in">
       <h2 className="text-4xl font-extrabold text-cyan-300 drop-shadow-lg tracking-wider mb-2 neon-glow">GAME OVER</h2>
       {isHighScore && (

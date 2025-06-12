@@ -13,6 +13,7 @@ export interface GameScreenProps {
   sfxVolume: number;
   musicVolume: number;
   onSoundSettingsChange: (soundEnabled: boolean, musicVolume: number, sfxVolume: number) => void;
+  orientationState?: { isMobile: boolean; isPortrait: boolean } | null;
 }
 
 export interface Obstacle {
