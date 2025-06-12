@@ -1,4 +1,3 @@
-// filepath: src/components/LeaderboardScreen.tsx
 import React, { useEffect, useState } from 'react';
 import { ArrowLeft, Crown, Trophy, Medal, Star, Zap } from 'lucide-react';
 import { LeaderboardEntry, User } from '../App';
@@ -10,7 +9,6 @@ interface LeaderboardScreenProps {
 }
 
 const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ leaderboard, currentUser, onBack }) => {
-  // Helper function to get the icon based on rank
   const getRankIcon = (rank: number) => {
     switch (rank) {
       case 1: return <Crown className="w-6 h-6 text-yellow-400" />;
@@ -20,7 +18,6 @@ const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ leaderboard, curr
     }
   };
 
-  // Helper function to get background color based on rank
   const getRankColor = (rank: number) => {
     switch (rank) {
       case 1: return 'from-yellow-500/20 to-yellow-600/20 border-yellow-400/50';
@@ -30,13 +27,10 @@ const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ leaderboard, curr
     }
   };
 
-  // Find the current user's rank in the leaderboard
   const currentUserRank = currentUser
     ? leaderboard.findIndex(entry => entry.username === currentUser.username) + 1
     : 0;
 
-  // --- Standard responsive logic ---
-  // This state is kept for potential future use but the layout is now handled by responsive classes
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     function handleResize() {
@@ -47,7 +41,6 @@ const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ leaderboard, curr
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // JSX for the list of leaderboard entries. Reused in all views.
   const leaderboardListContent = (
     <div className="space-y-3">
       {leaderboard.length === 0 ? (
@@ -86,20 +79,16 @@ const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ leaderboard, curr
     </div>
   );
   
-  // --- UNIFIED & RESPONSIVE LAYOUT ---
   return (
     <div className="fixed inset-0 z-30 flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 via-purple-900 to-black p-4 overflow-y-auto">
         
-        {/* Background Effects */}
         <div className="absolute inset-0 opacity-20 pointer-events-none z-0">
             <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 via-transparent to-purple-500/10"></div>
             <div className="grid grid-cols-12 grid-rows-12 h-full w-full">{Array.from({ length: 144 }).map((_, i) => (<div key={i} className="border border-cyan-500/20 animate-pulse" style={{ animationDelay: `${(i * 50) % 3000}ms` }}></div>))}</div>
         </div>
         
-        {/* Main Content Wrapper (Responsive) */}
         <div className="relative z-10 w-full flex flex-col items-center justify-center gap-6 max-w-sm sm:max-w-md md:max-w-lg lg:max-w-2xl">
             
-            {/* Main Panel */}
             <div className="bg-black/70 backdrop-blur-lg rounded-2xl border border-cyan-500/30 shadow-2xl w-full p-4 sm:p-6 flex flex-col max-h-[85vh]">
                 <div className="text-center mb-4 sm:mb-6 flex-shrink-0">
                     <div className="flex items-center justify-center mb-4 relative">
@@ -110,13 +99,11 @@ const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ leaderboard, curr
                     <p className="text-gray-400 text-sm sm:text-base">Top runners in the neon city</p>
                 </div>
                 
-                {/* Scrollable List Area */}
                 <div className="flex-grow overflow-y-auto pr-2 min-h-0">
                     {leaderboardListContent}
                 </div>
             </div>
 
-            {/* UNIFIED Back Button */}
             <button 
                 onClick={onBack} 
                 className="w-full max-w-xs bg-black/60 px-4 py-3 rounded-lg border-2 border-cyan-400/30 text-cyan-300 font-semibold hover:bg-cyan-900/30 transition flex items-center justify-center gap-3 shadow-lg text-lg"

@@ -1,4 +1,3 @@
-// filepath: d:\Documents\KULIAH\Semester4\Netlab\project\src\components\LoginScreen.tsx
 import React, { useState } from 'react';
 import { ArrowLeft, User, Mail, Lock, Zap } from 'lucide-react';
 import { login as apiLogin, register as apiRegister } from '../utils/api';
@@ -9,29 +8,21 @@ interface LoginScreenProps {
 }
 
 const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onBack }) => {
-  // State untuk mengelola mode form (login atau register)
   const [isLogin, setIsLogin] = useState(true);
-
-  // State untuk input form
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-
-  // State untuk UI feedback
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Validasi Regex untuk input
   const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
   const emailRegex = /^[\w-.]+@([\w-]+\.)+[\w-]{2,}$/;
   const passwordRegex = /^(?=.*[A-Z])(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).{6,}$/;
 
-  // Fungsi untuk menangani submit form
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    // Validasi input di sisi klien
     if (!usernameRegex.test(username)) {
       setError('Username: 3-20 karakter (huruf, angka, atau _).');
       return;
@@ -64,7 +55,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onBack }) => {
     setLoading(false);
   };
   
-  // Fungsi untuk beralih antara mode Login dan Register
   const toggleMode = () => {
     setIsLogin(!isLogin);
     setError(null);
@@ -73,21 +63,16 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onBack }) => {
     setPassword('');
   };
 
-  // --- LAYOUT TERPADU & RESPONSIF ---
   return (
-    // PERBAIKAN: Mengganti justify-center dengan justify-start dan menambahkan padding vertikal
-    <div className="fixed inset-0 z-30 flex flex-col items-center justify-start bg-gradient-to-br from-gray-900 via-purple-900 to-black px-4 py-8 overflow-y-auto">
+    <div className="fixed inset-0 z-30 flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 via-purple-900 to-black px-4 overflow-y-auto">
         
-        {/* Efek Latar Belakang */}
         <div className="absolute inset-0 opacity-20 pointer-events-none z-0">
             <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 via-transparent to-purple-500/10"></div>
             <div className="grid grid-cols-12 grid-rows-12 h-full w-full">{Array.from({ length: 144 }).map((_, i) => (<div key={i} className="border border-cyan-500/20 animate-pulse" style={{ animationDelay: `${(i * 50) % 3000}ms` }}></div>))}</div>
         </div>
         
-        {/* Wrapper Konten Utama (Responsif) */}
         <div className="relative z-10 w-full flex flex-col items-center justify-center gap-6 max-w-sm sm:max-w-md">
             
-            {/* Panel Utama */}
             <div className="bg-black/70 backdrop-blur-lg rounded-2xl border border-cyan-500/30 p-6 sm:p-8 shadow-2xl w-full">
               <div className="text-center mb-8">
                 <div className="flex items-center justify-center mb-4"><Zap className="w-10 h-10 text-cyan-400 animate-pulse" /></div>
@@ -126,7 +111,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onBack }) => {
               </div>
             </div>
 
-            {/* Tombol Kembali yang Seragam */}
             <button 
                 onClick={onBack} 
                 className="w-full max-w-xs bg-black/60 px-4 py-3 rounded-lg border-2 border-cyan-400/30 text-cyan-300 font-semibold hover:bg-cyan-900/30 transition flex items-center justify-center gap-3 shadow-lg text-lg"

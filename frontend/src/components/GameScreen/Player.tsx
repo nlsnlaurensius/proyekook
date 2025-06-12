@@ -1,6 +1,5 @@
 import React from 'react';
 
-// Define GameState type locally to match usage
 export type GameState = 'playing' | 'gameOver' | 'paused';
 
 interface PlayerProps {
@@ -19,11 +18,11 @@ interface PlayerProps {
   jumpFrames: string[];
   duckFrames: string[];
   deathFrames: string[];
-  redShine?: boolean; // Red shine effect
-  goldShine?: boolean; // Gold shine effect
-  shieldBlink?: boolean; // Blinking effect for shield
-  left?: number | string; // horizontal position override (px or %)
-  leftFraction?: number; // fraction of parent width (0.25 = 25%)
+  redShine?: boolean;
+  goldShine?: boolean;
+  shieldBlink?: boolean;
+  left?: number | string;
+  leftFraction?: number;
 }
 
 const Player: React.FC<PlayerProps> = ({
@@ -45,18 +44,14 @@ const Player: React.FC<PlayerProps> = ({
   redShine = false,
   goldShine = false,
   shieldBlink = false,
-  left = undefined, // default undefined, use leftFraction if not set
-  leftFraction = 0.25, // default 25% dari lebar parent
+  left = undefined,
+  leftFraction = 0.25,
 }) => {
-  // Hitung posisi left: jika leftFraction diberikan, gunakan persentase parent
-  // Jika left diberikan (misal override manual), gunakan itu
-  // Catatan: parent harus relative/absolute agar % bekerja
   let leftStyle: string | undefined = undefined;
   if (left !== undefined) {
     leftStyle = typeof left === 'number' ? `${left}px` : left;
   } else if (leftFraction !== undefined) {
     leftStyle = `${leftFraction * 100}%`;
-    // Untuk benar-benar center, kurangi setengah lebar robot (transformX)
   }
 
   return (
@@ -64,7 +59,7 @@ const Player: React.FC<PlayerProps> = ({
       className="absolute transition-all duration-100"
       style={{
         left: leftStyle,
-        transform: `translateX(-50%) scaleX(-1)`, // center anchor, flip
+        transform: `translateX(-50%) scaleX(-1)`,
         bottom: `${56 + robotY}px`,
         width: `${ROBOT_WIDTH}px`,
         height: `${isDucking ? ROBOT_HEIGHT * 0.7 : ROBOT_HEIGHT}px`,
@@ -76,7 +71,6 @@ const Player: React.FC<PlayerProps> = ({
         filter: shieldBlink ? 'drop-shadow(0 0 16px #38bdf8) drop-shadow(0 0 8px #0ff)' : undefined,
       }}
     >
-      {/* Gold shine overlay */}
       {goldShine && (
         <div
           style={{
@@ -94,7 +88,6 @@ const Player: React.FC<PlayerProps> = ({
           }}
         />
       )}
-      {/* Red shine overlay */}
       {redShine && (
         <div
           style={{

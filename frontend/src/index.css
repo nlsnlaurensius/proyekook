@@ -17,7 +17,6 @@
   }
 }
 
-/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
 }
@@ -34,8 +33,6 @@
 ::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(45deg, #00d4ff, #7000e0);
 }
-
-/* Prevent text selection during gameplay */
 .game-area {
   -webkit-user-select: none;
   -moz-user-select: none;
@@ -43,7 +40,6 @@
   user-select: none;
 }
 
-/* Neon glow effects */
 .neon-glow {
   text-shadow: 0 0 5px currentColor, 0 0 10px currentColor, 0 0 15px currentColor;
 }

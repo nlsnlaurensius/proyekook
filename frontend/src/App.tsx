@@ -16,7 +16,7 @@ export interface User {
   username: string;
   highScore: number;
   id?: number;
-  coin?: number; // Add coin field for coin balance
+  coin?: number; 
 }
 
 export interface LeaderboardEntry {
@@ -37,12 +37,10 @@ function App() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Load saved user data
     const savedUser = localStorage.getItem('neonRunnerUser');
     if (savedUser && savedUser !== 'undefined') {
       setUser(JSON.parse(savedUser));
     }
-    // Load sound settings
     const savedSoundSettings = localStorage.getItem('neonRunnerSoundSettings');
     if (savedSoundSettings && savedSoundSettings !== 'undefined') {
       const settings = JSON.parse(savedSoundSettings);
@@ -50,7 +48,6 @@ function App() {
       setMusicVolume(settings.musicVolume);
       setSfxVolume(settings.sfxVolume);
     }
-    // Fetch leaderboard from backend
     const fetchLeaderboard = async () => {
       try {
         const token = localStorage.getItem('neonRunnerToken') || undefined;
@@ -62,7 +59,6 @@ function App() {
           rank: idx + 1,
         })));
       } catch (e) {
-        // fallback: empty leaderboard
         setLeaderboard([]);
       }
     };
@@ -71,7 +67,6 @@ function App() {
 
   useEffect(() => {
     function handleGlobalClick() {
-      // Only play click if not in game screen
       if (!soundEnabled) return;
       playClick(sfxVolume);
     }
@@ -87,13 +82,10 @@ function App() {
       } else {
         res = await getUserByUsername(username);
       }
-      // Debug: log the full response from backend
       console.log('Login response:', res);
 
-      // Ambil user dari payload jika ada
       const rawUser = res?.user || res?.data || res?.payload;
       if (rawUser) {
-        // Pastikan highScore selalu ada
         const bestScore = rawUser.highScore || rawUser.highestScore || rawUser.score || 0;
         const user = { ...rawUser, highScore: bestScore };
         const token = res?.token;
@@ -117,14 +109,11 @@ function App() {
   };
 
   const updateHighScore = async (score: number): Promise<void> => {
-    // Update highScore di local state jika perlu
     if (user && score > user.highScore) {
       const updatedUser = { ...user, highScore: score };
       setUser(updatedUser);
       localStorage.setItem('neonRunnerUser', JSON.stringify(updatedUser));
     }
-    // Jangan submit ke backend di sini! (Sudah dilakukan di GameScreen)
-    // Refresh leaderboard setelah submit (opsional, bisa fetch ulang leaderboard jika ingin)
     try {
       const token = localStorage.getItem('neonRunnerToken') || undefined;
       const res = await getLeaderboard(token);
@@ -146,7 +135,6 @@ function App() {
     }
   };
 
-  // Handler untuk update sound settings dari GameScreen/PauseScreen
   const handleSoundSettingsChange = (enabled: boolean, music: number, sfx: number) => {
     setSoundEnabled(enabled);
     setMusicVolume(music);
@@ -169,7 +157,6 @@ function App() {
     }));
   };
 
-  // Handler pembelian power up
   const handleBuyPowerUp = async (powerUp: any, onBuySuccess?: (powerUpId: number) => void) => {
     if (!user || !user.id) return;
     if ((user.coin || 0) < powerUp.price) {
@@ -180,13 +167,12 @@ function App() {
     try {
       const token = localStorage.getItem('neonRunnerToken') || undefined;
       await buyPowerUp(user.id, powerUp.id, token);
-      // Ambil user terbaru dari backend setelah pembelian
       const res = await getUserByUsername(user.username, token);
       const updatedUser = { ...user, ...res.data, highScore: user.highScore };
       setUser(updatedUser);
       localStorage.setItem('neonRunnerUser', JSON.stringify(updatedUser));
       setShopSuccess(`Successfully purchased power-up: ${powerUp.name}`);
-      if (onBuySuccess) onBuySuccess(powerUp.id); // Optimistically update UI
+      if (onBuySuccess) onBuySuccess(powerUp.id); 
       setTimeout(() => setShopSuccess(null), 2000);
     } catch (e: any) {
       setShopSuccess(e.message || 'Failed to purchase power-up.');
@@ -194,7 +180,6 @@ function App() {
     }
   };
 
-  // Tambahkan polling coin user setiap 2 detik jika sudah login
   useEffect(() => {
     if (!user || !user.username) return;
     let interval: ReturnType<typeof setInterval>;
@@ -240,13 +225,12 @@ function App() {
           user ? (
             <GameScreen
               user={user}
-              onGameOver={async (score: number, coinsCollected: number) => { await updateHighScore(score); }}
+              onGameOver={async (score: number) => { await updateHighScore(score); }}
               onBack={() => navigate('/home')}
               soundEnabled={soundEnabled}
               sfxVolume={sfxVolume}
               musicVolume={musicVolume}
               onSoundSettingsChange={handleSoundSettingsChange}
-              // Pass orientation state from navigation if available
               orientationState={lastOrientation}
             />
           ) : (
@@ -280,7 +264,7 @@ function App() {
             <Navigate to="/login" replace />
           )
         } />
-        <Route path="*" element={<NotFoundPage />} />
+        <Route path="*" element={<NotFoundPage onBack={() => navigate('/home')} />} />
       </Routes>
     </div>
   );

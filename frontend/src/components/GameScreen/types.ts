@@ -2,7 +2,7 @@ export interface UserWithId {
   id?: number;
   userId?: number;
   username: string;
-  coin?: number; // Add coin field for coin balance
+  coin?: number; 
 }
 
 export interface GameScreenProps {

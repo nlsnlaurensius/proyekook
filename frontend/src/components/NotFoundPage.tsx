@@ -1,21 +1,23 @@
 import React, { useEffect, useState } from 'react';
 
-// Vite way: import all walk frames dynamically
 const walkFrames = Object.values(
   import.meta.glob('../assets/walk/*.png', { eager: true, as: 'url' })
 ).sort();
 
-const NotFoundPage: React.FC = () => {
+interface NotFoundPageProps {
+  onBack: () => void;
+}
+
+const NotFoundPage: React.FC<NotFoundPageProps> = ({ onBack }) => {
   const [frame, setFrame] = useState(0);
 
   useEffect(() => {
     const interval = setInterval(() => {
       setFrame(f => (f + 1) % walkFrames.length);
-    }, 60); // lebih cepat
+    }, 60);
     return () => clearInterval(interval);
   }, []);
 
-  // Responsive mobile portrait UI
   const [isPortrait, setIsPortrait] = React.useState(false);
   const [isMobile, setIsMobile] = React.useState(false);
   React.useEffect(() => {
@@ -58,10 +60,8 @@ const NotFoundPage: React.FC = () => {
   }
 
   if (isMobile && !isPortrait) {
-    // MOBILE LANDSCAPE UI
     return (
       <div className="fixed left-0 top-0 w-[100vw] h-[100vh] flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 via-purple-900 to-black overflow-hidden">
-        {/* Background grid & particles */}
         <div className="absolute inset-0 opacity-20 pointer-events-none z-0">
           <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 via-transparent to-purple-500/10"></div>
           <div className="grid grid-cols-12 grid-rows-12 h-full w-full">
@@ -75,7 +75,6 @@ const NotFoundPage: React.FC = () => {
             <div key={i} className="absolute w-1 h-1 bg-cyan-400 rounded-full animate-ping opacity-60" style={{ left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%`, animationDelay: `${Math.random() * 3}s`, animationDuration: `${2 + Math.random() * 2}s` }}></div>
           ))}
         </div>
-        {/* Konten utama center */}
         <div className="relative z-10 w-full max-w-lg flex flex-col items-center justify-center mx-auto gap-4 px-2 py-4 text-center">
           <h1 className="text-3xl font-extrabold text-cyan-300 neon-glow drop-shadow-lg animate-pulse select-none mb-1">404: Lost in Neon City</h1>
           <div className="w-24 h-24 flex items-center justify-center mb-2 mx-auto">

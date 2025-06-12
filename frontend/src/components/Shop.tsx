@@ -32,7 +32,6 @@ const Shop: React.FC<ShopProps> = ({ userCoin, onBuy, shopSuccess }) => {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  // Fetch all power ups
   useEffect(() => {
     const fetchPowerUps = async () => {
       setLoading(true);
@@ -49,7 +48,6 @@ const Shop: React.FC<ShopProps> = ({ userCoin, onBuy, shopSuccess }) => {
     fetchPowerUps();
   }, []);
 
-  // Poll user owned power ups every 2s
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
     const fetchUserPowerUps = async () => {
@@ -60,7 +58,6 @@ const Shop: React.FC<ShopProps> = ({ userCoin, onBuy, shopSuccess }) => {
         const user = JSON.parse(userStr);
         if (!user.id) return;
         const res = await getUserOwnedPowerUps(user.id, token);
-        // Map: { powerUpId: quantity } sesuai DTO baru
         const map: Record<number, number> = {};
         (res.data || res.payload || []).forEach((upu: any) => {
           map[upu.powerUpId] = upu.quantity;
@@ -73,7 +70,6 @@ const Shop: React.FC<ShopProps> = ({ userCoin, onBuy, shopSuccess }) => {
     return () => clearInterval(interval);
   }, []);
 
-  // Optimistically update quantity after buy
   const handleBuy = (pu: PowerUp) => {
     onBuy(pu, (powerUpId: number) => {
       setUserPowerUps((prev) => ({
@@ -83,7 +79,6 @@ const Shop: React.FC<ShopProps> = ({ userCoin, onBuy, shopSuccess }) => {
     });
   };
 
-  // Responsive mobile portrait UI
   const [isPortrait, setIsPortrait] = React.useState(false);
   const [isMobile, setIsMobile] = React.useState(false);
   React.useEffect(() => {
@@ -146,16 +141,13 @@ const Shop: React.FC<ShopProps> = ({ userCoin, onBuy, shopSuccess }) => {
   }
 
   if (isMobile && !isPortrait) {
-    // MOBILE LANDSCAPE UI (match leaderboard)
     return (
       <div className="fixed left-0 top-0 w-[100vw] h-[100vh] flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 via-purple-900 to-black overflow-hidden">
-        {/* Background grid & particles */}
         <div className="absolute inset-0 opacity-20 pointer-events-none z-0">
           <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 via-transparent to-purple-500/10"></div>
           <div className="grid grid-cols-12 grid-rows-12 h-full w-full">{Array.from({ length: 144 }).map((_, i) => (<div key={i} className="border border-cyan-500/20 animate-pulse" style={{ animationDelay: `${(i * 50) % 3000}ms` }}></div>))}</div>
         </div>
         <div className="absolute inset-0 pointer-events-none z-0">{Array.from({ length: 20 }).map((_, i) => (<div key={i} className="absolute w-1 h-1 bg-cyan-400 rounded-full animate-ping opacity-60" style={{ left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%`, animationDelay: `${Math.random() * 3}s`, animationDuration: `${2 + Math.random() * 2}s` }}></div>))}</div>
-        {/* Main Content Wrapper (Responsive, match leaderboard) */}
         <div className="relative z-10 w-full flex flex-col items-center justify-center gap-6 max-w-sm sm:max-w-md md:max-w-lg lg:max-w-2xl">
           <div className="bg-black/70 backdrop-blur-lg rounded-2xl border border-cyan-500/30 shadow-2xl w-full p-4 sm:p-6 flex flex-col max-h-[85vh]">
             <div className="text-center mb-4 sm:mb-6 flex-shrink-0">
@@ -195,7 +187,6 @@ const Shop: React.FC<ShopProps> = ({ userCoin, onBuy, shopSuccess }) => {
               </div>
             </div>
           </div>
-          {/* UNIFIED Back Button */}
           <button onClick={() => navigate('/home')} className="w-full max-w-xs bg-black/60 px-4 py-3 rounded-lg border-2 border-cyan-400/30 text-cyan-300 font-semibold hover:bg-cyan-900/30 transition flex items-center justify-center gap-3 shadow-lg text-lg">
             <ArrowLeft className="w-6 h-6" /> Back to Home
           </button>
@@ -206,20 +197,17 @@ const Shop: React.FC<ShopProps> = ({ userCoin, onBuy, shopSuccess }) => {
 
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 via-purple-900 to-black relative overflow-hidden px-2 md:px-0">
-      {/* Notifikasi sukses pembelian */}
       {shopSuccess && (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-cyan-700 text-white px-6 py-3 rounded-xl shadow-lg text-lg animate-fade-in-out">
           {shopSuccess}
         </div>
       )}
-      {/* Animated background grid and particles (match HomeScreen) */}
       <div className="absolute inset-0 opacity-20">
         <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 via-transparent to-purple-500/10"></div>
         <div className="grid grid-cols-12 grid-rows-12 h-full w-full">{Array.from({ length: 144 }).map((_, i) => (<div key={i} className="border border-cyan-500/20 animate-pulse" style={{ animationDelay: `${(i * 50) % 3000}ms` }}></div>))}</div>
       </div>
       <div className="absolute inset-0 pointer-events-none">{Array.from({ length: 20 }).map((_, i) => (<div key={i} className="absolute w-1 h-1 bg-cyan-400 rounded-full animate-ping opacity-60" style={{ left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%`, animationDelay: `${Math.random() * 3}s`, animationDuration: `${2 + Math.random() * 2}s` }}></div>))}</div>
       <div className="relative z-10 w-full max-w-2xl mx-auto">
-        {/* UNIFIED Back to Home button */}
         <button onClick={() => navigate('/home')} className="w-full max-w-xs bg-black/60 px-4 py-3 rounded-lg border-2 border-cyan-400/30 text-cyan-300 font-semibold hover:bg-cyan-900/30 transition flex items-center justify-center gap-3 shadow-lg text-lg mb-4">
           <ArrowLeft className="w-6 h-6" />
           Back to Home
@@ -236,7 +224,6 @@ const Shop: React.FC<ShopProps> = ({ userCoin, onBuy, shopSuccess }) => {
               <div className="text-center text-gray-400">No power-ups available.</div>
             ) : (
               powerUps.map((pu) => {
-                // Pilih icon sesuai nama power up
                 let icon = shieldIcon;
                 if (pu.name.toLowerCase().includes('coin')) icon = doublecoinIcon;
                 else if (pu.name.toLowerCase().includes('exp') || pu.name.toLowerCase().includes('xp')) icon = doublexpIcon;

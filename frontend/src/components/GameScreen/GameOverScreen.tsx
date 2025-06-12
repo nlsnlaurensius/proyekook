@@ -7,7 +7,7 @@ interface GameOverScreenProps {
   onRestart: () => void;
   submitting: boolean;
   submitError: string | null;
-  isHighScore?: boolean; // NEW PROP
+  isHighScore?: boolean;
   isMobile?: boolean;
   isPortrait?: boolean;
 }
@@ -19,11 +19,11 @@ const GameOverScreen: React.FC<GameOverScreenProps> = ({
   onRestart,
   submitting,
   submitError,
-  isHighScore = false, // default false
+  isHighScore = false, 
   isMobile = false,
   isPortrait = true,
 }) => {
-  // Responsive: mobile landscape = row, else col
+
   const isMobileLandscape = isMobile && !isPortrait;
   return (
     <div className="absolute inset-0 bg-black/80 backdrop-blur-[2px] flex items-center justify-center z-50">

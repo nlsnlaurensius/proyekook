@@ -8,7 +8,7 @@ interface PauseScreenProps {
   musicVolume: number;
   onSoundSettingsChange: (soundEnabled: boolean, musicVolume: number, sfxVolume: number) => void;
   showExitWarning?: boolean;
-  mobileDrawer?: boolean; // NEW: tampilkan sebagai drawer bawah jika true
+  mobileDrawer?: boolean;
   isMobile?: boolean;
   isPortrait?: boolean;
 }
@@ -25,12 +25,10 @@ const PauseScreen: React.FC<PauseScreenProps> = ({
   isMobile = false,
   isPortrait = true,
 }) => {
-  // Local state for UI, but always sync with props
   const [localSoundEnabled, setLocalSoundEnabled] = useState(soundEnabled);
   const [localSfxVolume, setLocalSfxVolume] = useState(sfxVolume);
   const [localMusicVolume, setLocalMusicVolume] = useState(musicVolume);
 
-  // Sync local state with props if props change (e.g. from other screens)
   useEffect(() => {
     setLocalSoundEnabled(soundEnabled);
   }, [soundEnabled]);
@@ -41,7 +39,6 @@ const PauseScreen: React.FC<PauseScreenProps> = ({
     setLocalMusicVolume(musicVolume);
   }, [musicVolume]);
 
-  // Handlers that update both local and global state
   const handleToggleSound = () => {
     setLocalSoundEnabled((prev) => {
       onSoundSettingsChange(!prev, localMusicVolume, localSfxVolume);
@@ -64,11 +61,9 @@ const PauseScreen: React.FC<PauseScreenProps> = ({
     onBack();
   };
 
-  // Responsive: mobile landscape = row, else col
   const isMobileLandscape = isMobile && !isPortrait;
 
   if (mobileDrawer) {
-    // Drawer bawah untuk mobile
     return (
       <div className="fixed left-0 right-0 bottom-0 z-50 animate-slide-up">
         <div className="mx-auto w-full max-w-[480px] bg-gradient-to-br from-[#1a1a2e] via-[#23234d] to-[#0f3460] rounded-t-3xl shadow-2xl border-t-4 border-cyan-400/40 p-6 flex flex-col items-center gap-4 animate-fade-in">
@@ -80,9 +75,7 @@ const PauseScreen: React.FC<PauseScreenProps> = ({
           >
             Resume
           </button>
-          {/* Sound Settings */}
           <div className="w-full bg-black/40 rounded-lg p-4 border border-cyan-400/20 flex flex-col gap-4 mb-2">
-            {/* Master Sound Switch */}
             <div className="mb-2 flex items-center justify-between">
               <span className="text-cyan-200 font-semibold">Sound</span>
               <button
@@ -95,7 +88,6 @@ const PauseScreen: React.FC<PauseScreenProps> = ({
                 />
               </button>
             </div>
-            {/* SFX Volume */}
             <div className="flex items-center gap-3 justify-between">
               <span className="text-cyan-200 text-xs w-20">SFX Volume</span>
               <input
@@ -110,7 +102,6 @@ const PauseScreen: React.FC<PauseScreenProps> = ({
               />
               <span className="text-cyan-200 text-xs w-8 text-right">{Math.round(localSfxVolume * 100)}</span>
             </div>
-            {/* Music Volume */}
             <div className="flex items-center gap-3 justify-between">
               <span className="text-purple-200 text-xs w-20">Music Volume</span>
               <input
@@ -157,9 +148,7 @@ const PauseScreen: React.FC<PauseScreenProps> = ({
           >
             Resume
           </button>
-          {/* Sound Settings */}
           <div className="w-full bg-black/40 rounded-lg p-4 border border-cyan-400/20 flex flex-col gap-4 mb-2">
-            {/* Master Sound Switch */}
             <div className="mb-2 flex items-center justify-between">
               <span className="text-cyan-200 font-semibold">Sound</span>
               <button
@@ -172,7 +161,6 @@ const PauseScreen: React.FC<PauseScreenProps> = ({
                 />
               </button>
             </div>
-            {/* SFX Volume */}
             <div className="flex items-center gap-3 justify-between">
               <span className="text-cyan-200 text-xs w-20">SFX Volume</span>
               <input
@@ -187,7 +175,6 @@ const PauseScreen: React.FC<PauseScreenProps> = ({
               />
               <span className="text-cyan-200 text-xs w-8 text-right">{Math.round(localSfxVolume * 100)}</span>
             </div>
-            {/* Music Volume */}
             <div className="flex items-center gap-3 justify-between">
               <span className="text-purple-200 text-xs w-20">Music Volume</span>
               <input

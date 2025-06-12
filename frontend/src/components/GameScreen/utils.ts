@@ -1,4 +1,3 @@
-// Helper to import all frames from a folder
 export function importAll(r: any) {
   if ('keys' in r) {
     return r.keys().map(r);
@@ -7,7 +6,6 @@ export function importAll(r: any) {
   }
 }
 
-// Helper to get PNG dimensions
 export function getImageDimensions(src: string): Promise<{ width: number; height: number }> {
   return new Promise((resolve) => {
     const img = new window.Image();

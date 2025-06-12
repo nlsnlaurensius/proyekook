@@ -1,4 +1,3 @@
-// filepath: d:\Documents\KULIAH\Semester4\Netlab\project\src\components\GameScreen.tsx
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Pause, Play } from 'lucide-react';
 import { submitGameSession, getPowerUps, getUserOwnedPowerUps, usePowerUp } from '../utils/api';
@@ -23,18 +22,15 @@ import PauseScreen from './GameScreen/PauseScreen';
 import GameOverScreen from './GameScreen/GameOverScreen';
 import { importAll } from './GameScreen/utils';
 import { playClick } from '../utils/clickSound';
-// Animation frames (must be top-level for use in both logic and props)
 const runFrames = importAll(import.meta.glob('../assets/run/*.png', { eager: true, as: 'url' })).sort();
 const jumpFrames = importAll(import.meta.glob('../assets/jump/*.png', { eager: true, as: 'url' })).sort();
 const duckFrames = importAll(import.meta.glob('../assets/duck/*.png', { eager: true, as: 'url' })).sort();
 const deathFrames = importAll(import.meta.glob('../assets/death/*.png', { eager: true, as: 'url' })).sort();
 import { Particle, GameScreenProps } from './GameScreen/types';
-
-// --- Dino-like constants ---
 const GROUND_Y = 0;
-const JUMP_HEIGHT = 100; // Tinggi maksimum lompatan (bisa diubah sesuai kebutuhan)
-const JUMP_DURATION = 500; // ms
-const DUCK_DURATION = 500; // ms
+const JUMP_HEIGHT = 100;
+const JUMP_DURATION = 500;
+const DUCK_DURATION = 500;
 const ROBOT_WIDTH = 90;
 const ROBOT_HEIGHT = 120;
 let OBSTACLE_MIN_GAP = 220;
@@ -43,23 +39,18 @@ const OBSTACLE_SPEED_START = 6;
 const OBSTACLE_SPEED_MAX = 13;
 import { Obstacle as ObstacleType } from './GameScreen/types';
 const OBSTACLE_TYPES: ObstacleType['type'][] = ['low', 'high'];
-
-// Tambahkan konstanta untuk collider
-const COLLIDER_WIDTH = ROBOT_WIDTH * 0.8; // 80% dari lebar asli
+const COLLIDER_WIDTH = ROBOT_WIDTH * 0.8;
 const COLLIDER_X_OFFSET = (ROBOT_WIDTH - COLLIDER_WIDTH) / 2;
-// Player-only collider (slightly narrower)
-const PLAYER_COLLIDER_WIDTH = ROBOT_WIDTH * 0.65; // 65% dari lebar asli
+const PLAYER_COLLIDER_WIDTH = ROBOT_WIDTH * 0.65;
 const PLAYER_COLLIDER_X_OFFSET = (ROBOT_WIDTH - PLAYER_COLLIDER_WIDTH) / 2;
 
 const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, soundEnabled, sfxVolume, musicVolume, onSoundSettingsChange, orientationState }) => {
   const [gameState, setGameState] = useState<GameState>(() => {
-    // Use orientationState if provided (from HomeScreen/App), otherwise fallback to window check
     if (orientationState) {
       if (orientationState.isMobile && orientationState.isPortrait) return 'paused';
       if (orientationState.isMobile && !orientationState.isPortrait) return 'playing';
       return 'playing';
     }
-    // Fallback: check window
     const isMobileDevice = typeof window !== 'undefined' && window.innerWidth <= 1024;
     const isPortrait = typeof window !== 'undefined' && window.innerHeight > window.innerWidth;
     if (isMobileDevice && isPortrait) return 'paused';
@@ -67,7 +58,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
     return 'playing';
   });
   const [score, setScore] = useState(0);
-  const [robotY, setRobotY] = useState(GROUND_Y); // Mulai di ground
+  const [robotY, setRobotY] = useState(GROUND_Y);
   const [isJumping, setIsJumping] = useState(false);
   const [isDucking, setIsDucking] = useState(false);
   const [obstacles, setObstacles] = useState<ObstacleType[]>([]);
@@ -80,34 +71,42 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
   const [duckFrame, setDuckFrame] = useState(0);
   const [deathFrame, setDeathFrame] = useState(0);
   const [collidedObstacleId, setCollidedObstacleId] = useState<number | null>(null);
-  // Tambahkan state untuk coin
+  const [showInstructions, setShowInstructions] = useState(true);
   const [coins, setCoins] = useState<{ id: number; x: number; y: number; collected: boolean }[]>([]);
   const [coinCount, setCoinCount] = useState(0);
-  const gameWorldRef = useRef(null);
-  // --- Power Up State ---
+  const gameWorldRef = useRef<HTMLDivElement>(null);
   const [userPowerUps, setUserPowerUps] = useState<Record<number, number>>({});
   const [powerUpList, setPowerUpList] = useState<{ id: number; name: string; duration?: number; effectMultiplier?: number }[]>([]);
   const [doubleCoinActive, setDoubleCoinActive] = useState(false);
   const [doubleCoinTimer, setDoubleCoinTimer] = useState(0);
-  const [doubleCoinEffect, setDoubleCoinEffect] = useState(2); // default multiplier
-  const [doubleCoinDuration, setDoubleCoinDuration] = useState(10); // default duration (seconds)
+  const [doubleCoinEffect, setDoubleCoinEffect] = useState(2);
+  const [doubleCoinDuration, setDoubleCoinDuration] = useState(10);
   const [doubleXpActive, setDoubleXpActive] = useState(false);
   const [doubleXpTimer, setDoubleXpTimer] = useState(0);
-  const [doubleXpEffect, setDoubleXpEffect] = useState(2); // default multiplier
-  const [doubleXpDuration, setDoubleXpDuration] = useState(10); // default duration (seconds)
+  const [doubleXpEffect, setDoubleXpEffect] = useState(2);
+  const [doubleXpDuration, setDoubleXpDuration] = useState(10);
   const [shieldActive, setShieldActive] = useState(false);
   const [shieldTimer, setShieldTimer] = useState(0);
-  const [shieldDuration, setShieldDuration] = useState(5); // default duration (seconds)
+  const [shieldDuration, setShieldDuration] = useState(5);
   const [shieldPowerUpId, setShieldPowerUpId] = useState<number | null>(null);
   const [countdownResume, setCountdownResume] = useState<number | null>(null);
 
-  // Sinkronkan ke parent jika berubah (opsional, jika ingin update ke parent tambahkan callback di props)
   useEffect(() => {
     // Bisa tambahkan callback ke parent jika ingin
   }, [soundEnabled]);
   useEffect(() => {
     // Bisa tambahkan callback ke parent jika ingin
   }, [sfxVolume]);
+
+  useEffect(() => {
+    if (showInstructions && gameState === 'playing') {
+        const timer = setTimeout(() => {
+            setShowInstructions(false);
+        }, 3000);
+
+        return () => clearTimeout(timer);
+    }
+}, [showInstructions, gameState]);
 
   const gameLoopRef = useRef<number>();
   const obstacleIdRef = useRef(0);
@@ -116,22 +115,18 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
   const lastObstacleXRef = useRef(800);
   const jumpLockRef = useRef(false);
   const duckLockRef = useRef(false);
-  // Tambahkan ref untuk coin
   const coinIdRef = useRef(0);
   const lastCoinRef = useRef(0);
   const gameOverHandledRef = useRef(false);
 
-  // --- Dino-like obstacle spawn logic ---
   const createObstacle = useCallback(() => {
-    // Dynamic gap: reduce as score increases
     const effectiveScore = Math.max(score, 1);
-    const minGap = Math.max(120, 220 - Math.floor(effectiveScore / 100) * 20); // never below 120
-    const maxGap = Math.max(180, 420 - Math.floor(effectiveScore / 100) * 40); // never below 180
-    const minTypeGap = 320; // Minimum horizontal gap between different types in a group (ditingkatkan agar selalu aman)
+    const minGap = Math.max(120, 220 - Math.floor(effectiveScore / 100) * 20);
+    const maxGap = Math.max(180, 420 - Math.floor(effectiveScore / 100) * 40);
+    const minTypeGap = 320;
     const patternChance = Math.random();
     if (patternChance < 0.25 && score > 100) {
-      // Wall with a single gap (side-by-side only, never stacked)
-      const groupSize = Math.floor(Math.random() * 2) + 3; // 3-4 obstacles
+      const groupSize = Math.floor(Math.random() * 2) + 3;
       const gapIdx = Math.floor(Math.random() * groupSize);
       const baseX = lastObstacleXRef.current + minGap + Math.random() * (maxGap - minGap);
       let lastType: 'low' | 'high' | 'flying' | null = null;
@@ -140,12 +135,12 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
       for (let i = 0; i < groupSize; i++) {
         if (i === gapIdx) {
           lastType = null;
-          lastX += 48; // skip gap
+          lastX += 48;
           continue;
         }
         let type: 'low' | 'high' = Math.random() < 0.5 ? 'low' : 'high';
         if (type === 'low') {
-          if (lowPlaced) type = 'high'; // Only one low allowed per group
+          if (lowPlaced) type = 'high';
           else lowPlaced = true;
         }
         let x = lastX;
@@ -166,8 +161,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
       lastObstacleRef.current = Date.now();
       return;
     } else if (patternChance < 0.5 && score > 50) {
-      // Alternating high/low pattern (side-by-side only, with gap between types)
-      const groupSize = Math.floor(Math.random() * 2) + 2; // 2-3 obstacles
+      const groupSize = Math.floor(Math.random() * 2) + 2;
       const baseX = lastObstacleXRef.current + minGap + Math.random() * (maxGap - minGap);
       let lastType: 'low' | 'high' | 'flying' | null = null;
       let lastX = baseX;
@@ -175,7 +169,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
       for (let i = 0; i < groupSize; i++) {
         let type: 'low' | 'high' = i % 2 === 0 ? 'high' : 'low';
         if (type === 'low') {
-          if (lowPlaced) type = 'high'; // Only one low allowed per group
+          if (lowPlaced) type = 'high';
           else lowPlaced = true;
         }
         let x = lastX;
@@ -196,8 +190,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
       lastObstacleRef.current = Date.now();
       return;
     } else if (patternChance < 0.7 && score > 30) {
-      // Group spawn: 2-4 obstacles, random types, all side-by-side, with gap between types
-      const groupSize = Math.floor(Math.random() * 3) + 2; // 2-4 obstacles
+      const groupSize = Math.floor(Math.random() * 3) + 2;
       const baseX = lastObstacleXRef.current + minGap + Math.random() * (maxGap - minGap);
       let lastType: 'low' | 'high' | 'flying' | null = null;
       let lastX = baseX;
@@ -205,7 +198,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
       for (let i = 0; i < groupSize; i++) {
         let type: ObstacleType['type'] = OBSTACLE_TYPES[Math.floor(Math.random() * OBSTACLE_TYPES.length)];
         if (type === 'low') {
-          if (lowPlaced) type = 'high'; // Only one low allowed per group
+          if (lowPlaced) type = 'high';
           else lowPlaced = true;
         }
         let x = lastX;
@@ -226,7 +219,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
       lastObstacleRef.current = Date.now();
       return;
     }
-    // Default: single obstacle
     const type = OBSTACLE_TYPES[Math.floor(Math.random() * OBSTACLE_TYPES.length)];
     let width = 40, height = 40, y = 0;
     if (type === 'low') {
@@ -245,13 +237,10 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
     lastObstacleRef.current = Date.now();
   }, [score]);
 
-  // Fungsi untuk generate coin secara random
   const createCoin = useCallback(() => {
-    // Coin muncul di antara ground dan batas atas lompatan robot
     const minY = 56 + 10;
     const maxY = 56 + 80;
     const y = Math.floor(Math.random() * (maxY - minY)) + minY;
-    // Spawn X mirip obstacle
     const x = lastObstacleXRef.current + OBSTACLE_MIN_GAP + Math.random() * (OBSTACLE_MAX_GAP - OBSTACLE_MIN_GAP);
     lastObstacleXRef.current = x;
     setCoins(prev => [
@@ -266,15 +255,13 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
     lastCoinRef.current = Date.now();
   }, []);
 
-  // Music and SFX Howl instances
-  const musicRef = useRef<Howl | null>(null);
-  const jumpSfxRef = useRef<Howl | null>(null);
-  const duckSfxRef = useRef<Howl | null>(null);
-  const deathSfxRef = useRef<Howl | null>(null);
-  const coinSfxRef = useRef<Howl | null>(null);
-  const powerupSfxRef = useRef<Howl | null>(null);
+  const musicRef = useRef<any>(null);
+  const jumpSfxRef = useRef<any>(null);
+  const duckSfxRef = useRef<any>(null);
+  const deathSfxRef = useRef<any>(null);
+  const coinSfxRef = useRef<any>(null);
+  const powerupSfxRef = useRef<any>(null);
 
-  // Setup music and SFX on mount
   useEffect(() => {
     if (musicRef.current) {
       musicRef.current.unload();
@@ -288,7 +275,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
     if (soundEnabled && gameState === 'playing' && musicRef.current) {
       musicRef.current.play();
     }
-    // SFX setup tetap
     jumpSfxRef.current = new Howl({ src: [jumpSfxSrc], volume: soundEnabled ? sfxVolume : 0.0 });
     duckSfxRef.current = new Howl({ src: [duckSfxSrc], volume: soundEnabled ? sfxVolume : 0.0 });
     deathSfxRef.current = new Howl({ src: [deathSfxSrc], volume: soundEnabled ? sfxVolume : 0.0 });
@@ -300,7 +286,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
     };
   }, [soundEnabled, musicVolume, sfxVolume, gameState]);
 
-  // React to music toggle/volume or gameState
   useEffect(() => {
     if (!musicRef.current) return;
     musicRef.current.volume(soundEnabled ? musicVolume : 0);
@@ -311,7 +296,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
     }
   }, [soundEnabled, musicVolume, gameState]);
 
-  // React to SFX toggle/volume
   useEffect(() => {
     if (jumpSfxRef.current) jumpSfxRef.current.volume(soundEnabled ? sfxVolume : 0.0);
     if (duckSfxRef.current) duckSfxRef.current.volume(soundEnabled ? sfxVolume : 0.0);
@@ -319,7 +303,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
     if (coinSfxRef.current) coinSfxRef.current.volume(soundEnabled ? sfxVolume : 0.0);
   }, [soundEnabled, sfxVolume]);
 
-  // Helper: Add particles (must be above gameLoop)
   const addParticles = useCallback((x: number, y: number, count: number = 5) => {
     const newParticles: Particle[] = [];
     for (let i = 0; i < count; i++) {
@@ -336,7 +319,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
     setParticles(prev => [...prev, ...newParticles]);
   }, []);
 
-  // Helper: Play SFX (must be above gameLoop)
   const playSound = useCallback((type: 'jump' | 'duck' | 'crash') => {
     if (!soundEnabled) return;
     switch (type) {
@@ -352,9 +334,8 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
     }
   }, [soundEnabled]);
 
-  // Helper: Handle game over (must be above gameLoop)
   const handleGameOver = useCallback(async (finalScore: number) => {
-    if (gameOverHandledRef.current) return; // Guard agar hanya sekali
+    if (gameOverHandledRef.current) return;
     gameOverHandledRef.current = true;
     setSubmitting(true);
     setSubmitError(null);
@@ -369,14 +350,12 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
       setSubmitError('Failed to submit score to server.');
     }
     setSubmitting(false);
-    onGameOver(finalScore, coinCount); // Pass both score and coinsCollected
+    onGameOver(finalScore, coinCount);
   }, [user, onGameOver, coinCount]);
 
-  // --- Dino-like game loop ---
   const gameLoop = useCallback(() => {
     if (gameState !== 'playing') return;
     setObstacles(prev => {
-      // Jika shield aktif, skip semua collision obstacle
       if (shieldActive) {
         return prev.map(obstacle => ({
           ...obstacle,
@@ -390,10 +369,8 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
       if (updated.length === 0 || (800 - updated[updated.length - 1].x) > OBSTACLE_MIN_GAP + Math.random() * (OBSTACLE_MAX_GAP - OBSTACLE_MIN_GAP)) {
         createObstacle();
       }
-      // Collider presisi: posisi X player = 25% lebar game area (leftFraction), collider X = robotX + offset
       const gameWidth = gameWorldRef.current ? gameWorldRef.current.offsetWidth : 800;
       const robotX = gameWidth * 0.25;
-      // Use narrower collider for player-obstacle collision only
       const playerColliderRect = {
         x: robotX + PLAYER_COLLIDER_X_OFFSET,
         y: 56 + robotY,
@@ -435,24 +412,19 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
       y: particle.y + particle.vy,
       life: particle.life - 1
     })).filter(particle => particle.life > 0));
-    // Score hanya di-increment jika belum game over
     setScore(prev => {
       if (gameOverHandledRef.current) return prev;
       const increment = doubleXpActive ? doubleXpEffect : 1;
       return prev + increment;
     });
     setGameSpeed(prev => Math.min(prev + 0.002, OBSTACLE_SPEED_MAX));
-    // Update coins di gameLoop (gabungkan pergerakan, filter, dan collision dalam satu setCoins)
     setCoins(prev => {
       let coinsCollectedThisFrame = 0;
       let playCoinSound = false;
       const updated = prev
         .map(coin => {
-          // Gerakkan coin
           const moved = { ...coin, x: coin.x - gameSpeed };
-          // Jika sudah diambil, tetap collected
           if (moved.collected) return moved;
-          // Deteksi collision
           const gameWidth = gameWorldRef.current ? gameWorldRef.current.offsetWidth : 800;
           const robotX = gameWidth * 0.25;
           const robotRect = { x: robotX + COLLIDER_X_OFFSET, y: 56 + robotY, width: COLLIDER_WIDTH, height: isDucking ? ROBOT_HEIGHT * 0.7 : ROBOT_HEIGHT };
@@ -469,7 +441,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
           }
           return moved;
         })
-        // Hapus coin hanya jika sudah keluar layar
         .filter(coin => coin.x > -32);
       if (coinsCollectedThisFrame > 0) {
         let multiplier = 1;
@@ -479,7 +450,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
       }
       return updated;
     });
-    // Generate coin secara random
     const now = Date.now();
     if (now - lastCoinRef.current > 1200 + Math.random() * 2000) {
       createCoin();
@@ -487,16 +457,13 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
     gameLoopRef.current = requestAnimationFrame(gameLoop);
   }, [gameState, gameSpeed, score, createObstacle, playSound, addParticles, handleGameOver, robotY, isDucking, isJumping]);
 
-  // --- Modified jump and duck logic for instant transition ---
   const jump = useCallback(() => {
-    // Allow jump anytime, even if ducking (cancel duck)
     if (!isJumping && !jumpLockRef.current) {
-      setIsDucking(false); // Cancel duck if jumping
+      setIsDucking(false);
       setIsJumping(true);
       setRobotY(JUMP_HEIGHT);
       jumpLockRef.current = true;
       playSound('jump');
-      // Tidak ada addParticles di sini (hilangkan efek partikel lompat)
       setTimeout(() => {
         setRobotY(GROUND_Y);
         setIsJumping(false);
@@ -506,10 +473,9 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
   }, [isJumping, playSound]);
 
   const duck = useCallback(() => {
-    // Allow duck anytime, even if jumping (cancel jump)
     if (!isDucking && !duckLockRef.current) {
-      setIsJumping(false); // Cancel jump if ducking
-      setRobotY(GROUND_Y); // Force to ground if ducking mid-air
+      setIsJumping(false);
+      setRobotY(GROUND_Y);
       setIsDucking(true);
       duckLockRef.current = true;
       playSound('duck');
@@ -520,7 +486,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
     }
   }, [isDucking, playSound]);
 
-  // Keyboard controls
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.repeat) return;
@@ -542,7 +507,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [jump, duck, gameState]);
 
-  // Handler untuk resume dari pause dengan countdown
   const handleResumeWithCountdown = () => {
     setCountdownResume(3);
   };
@@ -557,7 +521,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
     }
   }, [countdownResume]);
 
-  // Game loop
   useEffect(() => {
     if (gameState === 'playing') {
       gameLoopRef.current = requestAnimationFrame(gameLoop);
@@ -574,7 +537,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
     };
   }, [gameState, gameLoop]);
 
-  // Animasi berlari
   useEffect(() => {
     if (gameState === 'playing' && !isJumping && !isDucking) {
       const interval = setInterval(() => {
@@ -584,7 +546,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
     }
   }, [gameState, isJumping, isDucking]);
 
-  // Animasi lompat
   useEffect(() => {
     if (isJumping) {
       setJumpFrame(0);
@@ -600,7 +561,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
     }
   }, [isJumping]);
 
-  // Animasi duck
   useEffect(() => {
     if (isDucking) {
       setDuckFrame(0);
@@ -613,7 +573,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
     }
   }, [isDucking]);
 
-  // Animasi mati
   useEffect(() => {
     if (gameState === 'gameOver') {
       setDeathFrame(0);
@@ -639,30 +598,27 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
     setCoins([]);
     setCoinCount(0);
     setGameSpeed(OBSTACLE_SPEED_START);
+    setShowInstructions(true);
     setGameState('playing');
     lastObstacleRef.current = 0;
     lastObstacleXRef.current = 800;
     gameOverHandledRef.current = false;
-    // Restart music from beginning when Play Again is pressed
     if (musicRef.current) {
       musicRef.current.seek(0);
       if (soundEnabled) musicRef.current.play();
     }
   };
 
-  // Handler untuk update sound setting global dari PauseScreen
   const handleSoundSettingsChange = (enabled: boolean, music: number, sfx: number) => {
     onSoundSettingsChange(enabled, music, sfx);
   };
 
-  // Add this after handleGameOver definition:
   useEffect(() => {
     if (gameState === 'gameOver') {
       handleGameOver(score);
     }
   }, [gameState, handleGameOver, score]);
 
-  // Fetch owned power ups and power up info on mount
   useEffect(() => {
     const fetchPowerUps = async () => {
       try {
@@ -671,14 +627,12 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
         if (!userStr) return;
         const userObj = JSON.parse(userStr);
         if (!userObj.id) return;
-        // Get owned
         const ownedRes = await getUserOwnedPowerUps(userObj.id, token);
         const map: Record<number, number> = {};
         (ownedRes.data || ownedRes.payload || []).forEach((upu: any) => {
           map[upu.powerUpId] = upu.quantity;
         });
         setUserPowerUps(map);
-        // Get all power up info
         const allRes = await getPowerUps(token);
         const list = (allRes.data || allRes.payload || []).map((pu: any) => ({
           id: pu.id,
@@ -687,19 +641,16 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
           effectMultiplier: pu.effectMultiplier
         }));
         setPowerUpList(list);
-        // Set double coin effect/duration
         const doubleCoin = list.find((pu: any) => pu.name.toLowerCase().includes('coin'));
         if (doubleCoin) {
           setDoubleCoinEffect(doubleCoin.effectMultiplier || 2);
           setDoubleCoinDuration(doubleCoin.duration || 10);
         }
-        // Set double xp effect/duration
         const doubleXp = list.find((pu: any) => pu.name.toLowerCase().includes('xp'));
         if (doubleXp) {
           setDoubleXpEffect(doubleXp.effectMultiplier || 2);
           setDoubleXpDuration(doubleXp.duration || 10);
         }
-        // Set shield duration
         const shield = list.find((pu: any) => pu.name.toLowerCase().includes('shield'));
         if (shield) {
           setShieldDuration(shield.duration || 5);
@@ -710,7 +661,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
     fetchPowerUps();
   }, []);
 
-  // Keyboard: tombol 1 untuk double coin
   useEffect(() => {
     const handleKeyDown = async (e: KeyboardEvent) => {
       if (e.repeat) return;
@@ -722,7 +672,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
           setDoubleCoinActive(true);
           setDoubleCoinTimer(doubleCoinDuration);
           if (powerupSfxRef.current && soundEnabled) powerupSfxRef.current.play();
-          // Update DB
           try {
             const userStr = localStorage.getItem('neonRunnerUser');
             const token = localStorage.getItem('neonRunnerToken') || undefined;
@@ -738,7 +687,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [powerUpList, userPowerUps, doubleCoinActive, doubleCoinDuration, gameState, soundEnabled]);
 
-  // Keyboard: tombol 2 untuk double xp
   useEffect(() => {
     const handleKeyDown = async (e: KeyboardEvent) => {
       if (e.repeat) return;
@@ -750,7 +698,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
           setDoubleXpActive(true);
           setDoubleXpTimer(doubleXpDuration);
           if (powerupSfxRef.current && soundEnabled) powerupSfxRef.current.play();
-          // Update DB
           try {
             const userStr = localStorage.getItem('neonRunnerUser');
             const token = localStorage.getItem('neonRunnerToken') || undefined;
@@ -766,7 +713,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [powerUpList, userPowerUps, doubleXpActive, doubleXpDuration, gameState, soundEnabled]);
 
-  // Keyboard: tombol 3 untuk shield
   useEffect(() => {
     const handleKeyDown = async (e: KeyboardEvent) => {
       if (e.repeat) return;
@@ -777,7 +723,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
           setShieldActive(true);
           setShieldTimer(shieldDuration);
           if (powerupSfxRef.current && soundEnabled) powerupSfxRef.current.play();
-          // Update DB
           try {
             const userStr = localStorage.getItem('neonRunnerUser');
             const token = localStorage.getItem('neonRunnerToken') || undefined;
@@ -793,7 +738,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [shieldPowerUpId, userPowerUps, shieldActive, shieldDuration, gameState, soundEnabled]);
 
-  // Power up langsung habis saat mati
   useEffect(() => {
     if (gameState === 'gameOver' && doubleCoinActive) {
       setDoubleCoinActive(false);
@@ -809,7 +753,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
     }
   }, [gameState, doubleCoinActive, doubleXpActive, shieldActive]);
 
-  // Power up timer effect: decrease timer every second when active
   useEffect(() => {
     if (!doubleCoinActive) return;
     if (doubleCoinTimer <= 0) {
@@ -867,24 +810,10 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
     return () => clearInterval(interval);
   }, [shieldActive, shieldTimer]);
 
-  // Helper: XP multiplier state
-  const [xp, setXp] = useState(0);
-
-  // XP gain logic (example, replace with your XP gain trigger)
-  const gainXp = (baseXp: number) => {
-    let multiplier = 1;
-    if (doubleXpActive) multiplier = doubleXpEffect;
-    setXp(x => x + baseXp * multiplier);
-  };
-
-  // Power up bar UI:
   const doubleCoinPowerUpId = powerUpList.find(pu => pu.name.toLowerCase().includes('coin'))?.id;
-  const doubleCoinQty = doubleCoinPowerUpId ? userPowerUps[doubleCoinPowerUpId] || 0 : 0;
   const doubleXpPowerUpId = powerUpList.find(pu => pu.name.toLowerCase().includes('xp'))?.id;
-  const doubleXpQty = doubleXpPowerUpId ? userPowerUps[doubleXpPowerUpId] || 0 : 0;
   const shieldQty = shieldPowerUpId ? userPowerUps[shieldPowerUpId] || 0 : 0;
 
-  // Blinking effect for shield: toggle every 300ms when shieldActive
   const [shieldBlink, setShieldBlink] = useState(false);
   useEffect(() => {
     if (!shieldActive) {
@@ -895,11 +824,10 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
     const interval = setInterval(() => {
       visible = !visible;
       setShieldBlink(visible);
-    }, 300); // was 120, now slower
+    }, 300);
     return () => clearInterval(interval);
   }, [shieldActive]);
 
-  // Warn user before leaving/refreshing if game is still running
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (gameState === 'playing') {
@@ -912,7 +840,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [gameState]);
 
-  // Handler konfirmasi keluar (back to home/menu) saat game masih berjalan
   const handleBackWithConfirm = useCallback(() => {
     if (gameState === 'playing') {
       const confirmExit = window.confirm('Your game session will not be saved if you leave now. Are you sure you want to return to the menu?');
@@ -927,7 +854,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
     function handleResize() {
       const portrait = window.innerHeight > window.innerWidth;
       setIsPortrait(portrait);
-      setIsMobile(window.innerWidth <= 1024); // iPad/tablet/mobile
+      setIsMobile(window.innerWidth <= 1400); // iPad/tablet/mobile
     }
     handleResize();
     window.addEventListener('resize', handleResize);
@@ -938,7 +865,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
     };
   }, []);
 
-  // Overlay instruksi rotate jika mobile/tablet dan portrait
   if (isMobile && isPortrait) {
     return (
       <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 via-purple-900 to-black">
@@ -956,22 +882,18 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
     );
   }
 
-  // Responsive game container
   return (
     <div className="relative w-screen h-screen flex items-center justify-center bg-black overflow-hidden font-sans">
-        {/* Container 16:9 utama dengan styling responsif yang benar */}
         <div
-            className="relative bg-black overflow-hidden shadow-2xl border-2 border-cyan-400/20"
-            style={{
+            className="relative bg-black overflow-hidden shadow-2xl border-2 border-cyan-400/20 aspect-video h-full w-auto max-w-full"style={{
                 aspectRatio: '16 / 9',
                 width: '100%',
                 height: '100%',
-                maxWidth: 'calc(100vh * (16 / 9))', // Letterbox (pilar di samping)
-                maxHeight: 'calc(100vw * (9 / 16))', // Pillarbox (pilar di atas/bawah)
+                maxWidth: 'calc(200vh * (16 / 9))',
+                maxHeight: 'calc(100vw * (9 / 16))',
                 margin: 'auto',
             }}
         >
-            {/* Background image, berada di lapisan paling bawah */}
             <img
                 src={cityBg}
                 alt="Cyberpunk City Background"
@@ -980,14 +902,10 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
                 style={{ filter: 'brightness(0.7) saturate(1.2)' }}
             />
 
-            {/* Kontainer layout utama menggunakan Flexbox (flex-col) */}
             <div className="relative w-full h-full flex flex-col z-10">
                 
-                {/* Top Bar (elemen flex pertama, tidak meregang) */}
-                <div className="flex-shrink-0 p-2 sm:p-4 flex justify-between items-start">
-                    {/* Power Up Bar di Kiri */}
+                <div className="relative z-40 flex-shrink-0 p-2 sm:p-4 flex justify-between items-start">
                     <div className="flex flex-col gap-2 sm:gap-4" style={{ zIndex: 50, pointerEvents: 'auto' }}>
-                        {/* Double Coin Power Up */}
                         <div className="relative flex items-center">
                             <div
                                 className="bg-[#181c2f] rounded-lg shadow-xl border-2 border-cyan-400/60 w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center relative cursor-pointer"
@@ -1007,6 +925,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
                                         } catch {}
                                     }
                                 }}
+                                
                             >
                                 <img src={doublecoinIcon} alt="Double Coin" className="w-8 h-8 sm:w-10 sm:h-10" />
                                 <div className="absolute -bottom-2 -right-2 bg-cyan-400 rounded-full w-6 h-6 flex items-center justify-center border-2 sm:border-4 border-[#181c2f] text-white font-bold text-sm sm:text-base shadow-md">
@@ -1014,7 +933,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
                                 </div>
                             </div>
                         </div>
-                        {/* Double XP Power Up */}
                         <div className="relative flex items-center">
                             <div
                                 className="bg-[#181c2f] rounded-lg shadow-xl border-2 border-yellow-400/60 w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center relative cursor-pointer"
@@ -1041,7 +959,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
                                 </div>
                             </div>
                         </div>
-                        {/* Shield Power Up */}
                         <div className="relative flex items-center">
                             <div
                                 className="bg-[#181c2f] rounded-lg shadow-xl border-2 border-blue-400/60 w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center relative cursor-pointer"
@@ -1070,7 +987,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
                         </div>
                     </div>
                     
-                    {/* Score/Coins di Kanan */}
                     <div className="flex items-center gap-2 sm:gap-4">
                         <div className="text-white font-bold text-base sm:text-xl bg-black/50 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg border border-cyan-500/30 backdrop-blur-sm">
                             Score: <span className="text-cyan-400">{score}</span>
@@ -1091,31 +1007,28 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
                     </div>
                 </div>
 
-                {/* Game Canvas (elemen flex kedua, meregang untuk mengisi sisa ruang) */}
                 <div
-                    ref={gameWorldRef}
-                    className="relative flex-1 w-full overflow-hidden"
-                    onTouchStart={e => {
-                        if (isMobile && !isPortrait && gameState === 'playing') {
-                            const touch = e.touches[0];
-                            const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
-                            const x = touch.clientX - rect.left;
-                            if (x < rect.width / 2) {
-                                // Touch kiri: lompat
-                                jump();
-                            } else {
-                                // Touch kanan: duck
-                                duck();
-                            }
-                        }
-                    }}
-                    style={{ touchAction: isMobile && !isPortrait ? 'manipulation' : undefined }}
-                >
-                    {/* Ground */}
-                    <div className="absolute left-0 bottom-0 w-full z-1" style={{ height: '56px', background: 'linear-gradient(90deg, #a259ff 0%, #6a00ff 100%)', boxShadow: '0 0 32px 8px #a259ff99' }} />
+    ref={gameWorldRef}
+    className="relative flex-1 w-full"
+    onTouchStart={e => {
+        if (isMobile && !isPortrait && gameState === 'playing') {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
+            const x = touch.clientX - rect.left;
+
+            if (x < rect.width / 2) {
+                jump();
+            } else {
+                duck();
+            }
+        }
+    }}
+    style={{ touchAction: isMobile && !isPortrait ? 'manipulation' : undefined }}
+>
+                    <div className="absolute left-0 bottom-0 w-full z-30" style={{ height: '56px', background: 'linear-gradient(90deg, #a259ff 0%, #6a00ff 100%)', boxShadow: '0 0 32px 8px #a259ff99' }} />
                     <div className="absolute left-0 bottom-[56px] w-full border-t-2 border-purple-300 z-1" />
 
-                    {/* Game entities (Player, Obstacles, etc.) diposisikan relatif terhadap Game Canvas ini */}
                     <Player
                         gameState={gameState}
                         isJumping={isJumping}
@@ -1136,14 +1049,13 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
                         leftFraction={0.25}
                     />
 
-                    {/* Power-up icon di kepala karakter jika aktif */}
                     {(doubleCoinActive || doubleXpActive || shieldActive) && (
                         <div
                             style={{
                                 position: 'absolute',
                                 left: gameWorldRef.current ? `calc(${gameWorldRef.current.offsetWidth * 0.25}px)` : '25%',
                                 transform: 'translateX(-50%)',
-                                bottom: `${56 + robotY + 140}px`, // Di atas kepala player
+                                bottom: `${56 + robotY + 140}px`,
                                 display: 'flex',
                                 flexDirection: 'row',
                                 gap: '8px',
@@ -1166,7 +1078,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
                         filter: 'drop-shadow(0 0 8px #0ff) drop-shadow(0 0 2px #fff8)',
                       }}
                     />
-                    {/* Bar durasi horizontal di bawah icon */}
                     <div style={{ width: 32, height: 4, background: '#164e63', borderRadius: 2, marginTop: 2, overflow: 'hidden', border: '1px solid #22d3ee' }}>
                       <div style={{ height: '100%', background: '#22d3ee', width: `${(doubleCoinTimer/doubleCoinDuration)*100}%`, transition: 'width 0.3s' }} />
                     </div>
@@ -1183,7 +1094,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
                         filter: 'drop-shadow(0 0 8px #ff0) drop-shadow(0 0 2px #fff8)',
                       }}
                     />
-                    {/* Bar durasi horizontal di bawah icon */}
                     <div style={{ width: 32, height: 4, background: '#78350f', borderRadius: 2, marginTop: 2, overflow: 'hidden', border: '1px solid #fde68a' }}>
                       <div style={{ height: '100%', background: '#fde68a', width: `${(doubleXpTimer/doubleXpDuration)*100}%`, transition: 'width 0.3s' }} />
                     </div>
@@ -1200,7 +1110,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
                         filter: 'drop-shadow(0 0 8px #0ff) drop-shadow(0 0 2px #fff8)',
                       }}
                     />
-                    {/* Bar durasi horizontal di bawah icon */}
                     <div style={{ width: 32, height: 4, background: '#334155', borderRadius: 2, marginTop: 2, overflow: 'hidden', border: '1px solid #38bdf8' }}>
                       <div style={{ height: '100%', background: '#38bdf8', width: `${(shieldTimer/shieldDuration)*100}%`, transition: 'width 0.3s' }} />
                     </div>
@@ -1238,14 +1147,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
                 </div>
             </div>
 
-            {/* Overlays (Pause, Game Over) dan Touch Controls diposisikan absolut terhadap kontainer 16:9 utama */}
-            {isMobile && gameState === 'playing' && (
-                <div className="absolute inset-0 z-30">
-                    <div className="absolute left-0 top-0 w-1/2 h-full" onTouchStart={(e) => { e.preventDefault(); jump(); }}></div>
-                    <div className="absolute right-0 top-0 w-1/2 h-full" onTouchStart={(e) => { e.preventDefault(); duck(); }}></div>
-                </div>
-            )}
-            
             {gameState === 'paused' && countdownResume === null && (
                 <PauseScreen
                     onResume={handleResumeWithCountdown}
@@ -1280,12 +1181,11 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
                 />
             )}
 
-            {/* Overlay instruksi touch untuk mobile landscape */}
-            {isMobile && !isPortrait && (
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-40 bg-black/70 px-4 py-2 rounded-xl border border-cyan-400 text-cyan-200 text-base font-semibold shadow-lg select-none pointer-events-none animate-fade-in">
-                    Touch left side to <span className="text-cyan-300">jump</span>, right side to <span className="text-cyan-300">duck</span>
-                </div>
-            )}
+            {isMobile && !isPortrait && showInstructions && (
+    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-40 bg-black/70 px-4 py-2 rounded-xl border border-cyan-400 text-cyan-200 text-base font-semibold shadow-lg select-none pointer-events-none animate-fade-in whitespace-nowrap">
+        Touch left side to <span className="text-cyan-300">jump</span>, right side to <span className="text-cyan-300">duck</span>
+    </div>
+)}
         </div>
     </div>
 );

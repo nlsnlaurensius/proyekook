@@ -27,7 +27,7 @@ interface HomeScreenProps {
 }
 
 const HomeScreen: React.FC<HomeScreenProps> = ({ user, onPlayNow, onSettings, onLeaderboard, onLogout, musicEnabled = true, musicVolume = 0.7, onShop }) => {
-  const musicRef = useRef<Howl | null>(null);
+  const musicRef = useRef<any>(null);
   const [frame, setFrame] = useState(0);
   const [liveHighScore, setLiveHighScore] = useState<number | null>(null);
   const [isPortrait, setIsPortrait] = useState(false);
@@ -55,7 +55,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onPlayNow, onSettings, on
   useEffect(() => {
     const interval = setInterval(() => {
       setFrame(f => (f + 1) % walkFrames.length);
-    }, 60); // Animasi lebih cepat
+    }, 60);
     return () => clearInterval(interval);
   }, []);
 
@@ -87,7 +87,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onPlayNow, onSettings, on
     function handleResize() {
       const portrait = window.innerHeight > window.innerWidth;
       setIsPortrait(portrait);
-      // UBAH BARIS INI: Naikkan breakpoint agar mencakup iPad Pro (1024px)
       setIsMobile(window.innerWidth <= 1024); 
     }
     handleResize();
@@ -101,7 +100,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onPlayNow, onSettings, on
 
   return (
     <div className={isMobile && !isPortrait ? "fixed left-0 top-0 w-[100vw] h-[100vh] bg-gradient-to-br from-gray-900 via-purple-900 to-black" : "min-h-screen w-full bg-gradient-to-br from-gray-900 via-purple-900 to-black relative overflow-hidden"}>
-      {/* Efek Latar Belakang (Grid dan Partikel) */}
       <div className="absolute inset-0 opacity-20 pointer-events-none z-0">
         <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 via-transparent to-purple-500/10"></div>
         <div className="grid grid-cols-12 grid-rows-12 h-full w-full">
@@ -114,7 +112,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onPlayNow, onSettings, on
         ))}
       </div>
 
-      {/* MOBILE PORTRAIT UI */}
       {isMobile && isPortrait ? (
        <div className="relative z-10 flex flex-col items-center justify-center min-h-screen w-full py-2 gap-3 sm:gap-6 max-w-full overflow-hidden">
         <h1 className="text-4xl sm:text-5xl font-extrabold text-cyan-300 neon-glow drop-shadow-lg animate-pulse select-none mb-1 sm:mb-2">
@@ -134,13 +131,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onPlayNow, onSettings, on
           PLAY
         </button>
         <div className="flex w-full max-w-xs gap-2 sm:gap-4 mb-2 sm:mb-4">
-          {/* PERUBAHAN DI SINI: Tombol Leaderboard disesuaikan lebarnya */}
           <button onClick={onLeaderboard} className={`${user ? 'flex-1' : 'w-full'} flex flex-col items-center bg-black/60 rounded-lg sm:rounded-xl border border-yellow-400/30 sm:border-2 shadow-xl hover:scale-105 transition py-2 sm:py-4`}>
             <Crown className="w-7 h-7 sm:w-8 sm:h-8 text-yellow-400 mb-0.5" />
             <span className="text-yellow-200 font-bold text-xs sm:text-base drop-shadow">Leaderboard</span>
           </button>
           
-          {/* PERUBAHAN DI SINI: Tombol Shop hanya ditampilkan jika user login */}
           {user && (
             <button onClick={onShop} className="flex-1 flex flex-col items-center bg-black/60 rounded-lg sm:rounded-xl border border-cyan-400/30 sm:border-2 shadow-xl hover:scale-105 transition py-2 sm:py-4">
               <ShoppingBag className="w-7 h-7 sm:w-8 sm:h-8 text-cyan-300 mb-0.5" />
@@ -165,7 +160,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onPlayNow, onSettings, on
           </div>
         )}
         
-        {/* PERUBAHAN DI SINI: Tombol Logout hanya ditampilkan jika user login */}
         {user && (
           <button onClick={onLogout} className="w-full max-w-xs bg-black/60 px-2 sm:px-4 py-2 sm:py-3 rounded-md sm:rounded-lg border border-red-400/30 sm:border-2 text-red-300 font-semibold hover:bg-red-900/30 transition flex items-center justify-center gap-2 sm:gap-3 shadow-lg text-base sm:text-lg mt-2 sm:mt-4">
             <LogOut className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -174,9 +168,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onPlayNow, onSettings, on
         )}
       </div>
       ) : isMobile && !isPortrait ? (
-        <div className="fixed left-0 top-0 w-[100vw] h-[100vh] p-4 z-10 relative"> 
+        <div className="fixed left-0 top-0 w-[100vw] h-[100vh] p-4 z-10"> 
         
-          {/* Kiri Atas: Info User (Hanya muncul jika login) */}
           {user && (
             <div className="absolute top-4 left-4 z-20">
                 <div className="flex flex-col gap-1 bg-black/70 border border-cyan-400/40 rounded-lg px-2 py-1 shadow min-w-[90px] max-w-[160px]">
@@ -200,14 +193,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onPlayNow, onSettings, on
             </div>
           )}
 
-          {/* Kanan: Tombol Settings, Leaderboard, Shop */}
           <div className="absolute top-4 right-4 z-20 flex flex-col justify-between items-end h-[calc(100%-2rem)]">
-              {/* Tombol Settings (di atas) */}
               <button onClick={onSettings} className="bg-black/60 p-2 rounded-full border border-cyan-400/30 shadow hover:bg-cyan-900/30 transition">
                   <Settings className="w-6 h-6 text-cyan-300 animate-spin-slow" style={{ animationDuration: '2.5s' }} />
               </button>
               
-              {/* Tombol Leaderboard & Shop (di bawah) */}
               <div className="flex flex-col items-end gap-2">
                   <button onClick={onLeaderboard} className="flex flex-col items-center group bg-black/60 rounded-lg border border-yellow-400/30 shadow hover:scale-105 transition w-20 h-16 justify-center">
                       <Crown className="w-7 h-7 text-yellow-400 group-hover:scale-110 transition" />
@@ -222,7 +212,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onPlayNow, onSettings, on
               </div>
           </div>
 
-          {/* TENGAH: Konten Utama (Judul, Player, Tombol Play) */}
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-between h-full py-4 pointer-events-none">
               <h1 className="text-5xl font-extrabold text-cyan-300 drop-shadow-lg neon-glow animate-pulse select-none pointer-events-auto">
                   NEON RUNNER
@@ -230,7 +219,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onPlayNow, onSettings, on
               <img
                   src={walkFrames[frame] as string}
                   alt="Neon Runner Walk Animation"
-                  className="h-[130px] w-auto object-contain drop-shadow-glow"
+                  className="h-[200px] w-auto object-contain drop-shadow-glow"
                   draggable={false}
               />
               <button
@@ -243,10 +232,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onPlayNow, onSettings, on
           </div>
       </div>
       ) : (
-        // DESKTOP/TABLET UI: high score value on new line
-        <div className={`w-full h-screen grid grid-cols-[auto_1fr_auto] grid-rows-[auto_1fr_auto] p-4 sm:p-6 gap-4 ${isMobile && !isPortrait ? 'scale-[0.85] origin-top h-[117.6%]' : ''}`}>
-          {/* [Grid Area] Pojok Kiri Atas: Info User (username, highscore, coin, logout) */}
-          <div className="col-start-1 row-start-1 flex flex-col items-start gap-2 z-20">
+        <div className={`w-full h-screen grid grid-cols-[1fr_auto_1fr] grid-rows-[auto_1fr_auto] p-4 sm:p-6 gap-4 ${isMobile && !isPortrait ? 'scale-[0.85] origin-top h-[117.6%]' : ''}`}> 
+          <div className="col-start-1 row-start- flex flex-col items-start gap-2 z-20">
             {user && (
               <div className="flex flex-col gap-2 bg-black/70 border-2 border-cyan-400/40 rounded-xl px-3 py-2 shadow-xl min-w-[120px] sm:min-w-[220px]">
                 <span className="font-bold text-cyan-200 text-base sm:text-xl tracking-wide drop-shadow">{user.username}</span>
@@ -269,21 +256,18 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onPlayNow, onSettings, on
             )}
           </div>
 
-          {/* [Grid Area] Tengah Atas: Judul Game */}
           <div className="col-start-2 row-start-1 flex justify-center items-start pt-2 z-20">
             <h1 className="text-4xl sm:text-6xl md:text-7xl font-extrabold text-cyan-300 drop-shadow-lg neon-glow animate-pulse select-none">
               NEON RUNNER
             </h1>
           </div>
 
-          {/* [Grid Area] Pojok Kanan Atas: Settings */}
           <div className="col-start-3 row-start-1 flex justify-end items-start z-20">
             <button onClick={onSettings} className="bg-black/60 p-2 sm:p-4 rounded-full border border-cyan-400/30 shadow-lg hover:bg-cyan-900/30 transition">
               <Settings className="w-6 h-6 sm:w-10 sm:h-10 text-cyan-300 animate-spin-slow" style={{ animationDuration: '2.5s' }} />
             </button>
           </div>
 
-          {/* [Grid Area] Tengah Kanan: Leaderboard & Shop */}
           <div className="col-start-3 row-start-2 flex flex-col items-center justify-center gap-4 sm:gap-8 z-20">
              <button onClick={onLeaderboard} className="flex flex-col items-center group bg-black/60 rounded-xl sm:rounded-2xl border-2 border-yellow-400/30 shadow-xl hover:scale-105 transition w-24 h-20 sm:w-44 sm:h-40 justify-center">
                <Crown className="w-8 h-8 sm:w-14 sm:h-14 text-yellow-400 group-hover:scale-110 transition" />
@@ -297,7 +281,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onPlayNow, onSettings, on
              )}
           </div>
 
-          {/* [Grid Area] Konten Utama di Tengah */}
           <div className="col-start-2 row-start-2 flex flex-col items-center justify-center z-10 relative pb-16 sm:pb-24">
               <img
                 src={walkFrames[frame] as string}
