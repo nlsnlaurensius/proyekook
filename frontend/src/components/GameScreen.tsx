@@ -41,7 +41,7 @@ import { Obstacle as ObstacleType } from './GameScreen/types';
 const OBSTACLE_TYPES: ObstacleType['type'][] = ['low', 'high'];
 const COLLIDER_WIDTH = ROBOT_WIDTH * 0.8;
 const COLLIDER_X_OFFSET = (ROBOT_WIDTH - COLLIDER_WIDTH) / 2;
-const PLAYER_COLLIDER_WIDTH = ROBOT_WIDTH * 0.65;
+const PLAYER_COLLIDER_WIDTH = ROBOT_WIDTH * 0.05;
 const PLAYER_COLLIDER_X_OFFSET = (ROBOT_WIDTH - PLAYER_COLLIDER_WIDTH) / 2;
 
 const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, soundEnabled, sfxVolume, musicVolume, onSoundSettingsChange, orientationState }) => {
@@ -854,7 +854,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
     function handleResize() {
       const portrait = window.innerHeight > window.innerWidth;
       setIsPortrait(portrait);
-      setIsMobile(window.innerWidth <= 1400); // iPad/tablet/mobile
+      setIsMobile(window.innerWidth <= 1400); 
     }
     handleResize();
     window.addEventListener('resize', handleResize);
@@ -1186,12 +1186,22 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
                 <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-40 bg-black/70 px-4 py-2 rounded-xl border border-cyan-400 text-cyan-200 text-base font-semibold shadow-lg select-none pointer-events-none animate-fade-in whitespace-nowrap">
                   Touch left side to <span className="text-cyan-300">jump</span>, right side to <span className="text-cyan-300">duck</span>
                 </div>
-                {/* Touch area containers, only on bottom 40% area */}
                 <div className="absolute left-0 bottom-0 w-full h-[40%] z-30 flex pointer-events-none">
                   <div className="w-1/2 h-full bg-cyan-400/20 border-r-2 border-cyan-300/30 transition-opacity duration-300 pointer-events-none" style={{borderBottomLeftRadius: 16}} />
                   <div className="w-1/2 h-full bg-purple-400/20 border-l-2 border-purple-300/30 transition-opacity duration-300 pointer-events-none" style={{borderBottomRightRadius: 16}} />
                 </div>
               </>
+            )}
+
+            {!isMobile && showInstructions && (
+              <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 bg-black/70 px-6 py-3 rounded-xl border border-cyan-400 text-cyan-200 text-base font-semibold shadow-lg select-none pointer-events-none animate-fade-in whitespace-nowrap flex flex-col items-center gap-1">
+                <div>
+                  Press <span className="text-cyan-300 font-bold">Arrow Up</span> or <span className="text-cyan-300 font-bold">Space</span> to <span className="text-cyan-300">jump</span>, <span className="text-cyan-300 font-bold">Arrow Down</span> to <span className="text-cyan-300">duck</span>
+                </div>
+                <div>
+                  Press <span className="text-yellow-300 font-bold">1</span>, <span className="text-yellow-300 font-bold">2</span>, <span className="text-yellow-300 font-bold">3</span> for <span className="text-yellow-300">power up</span>
+                </div>
+              </div>
             )}
         </div>
     </div>
