@@ -1,4 +1,5 @@
 import React from 'react';
+import { ROBOT_WIDTH, ROBOT_HEIGHT, PLAYER_COLLIDER_WIDTH, PLAYER_COLLIDER_X_OFFSET } from './playerColliderMeta';
 
 export type GameState = 'playing' | 'gameOver' | 'paused';
 
@@ -11,8 +12,6 @@ interface PlayerProps {
   duckFrame: number;
   deathFrame: number;
   robotY: number;
-  ROBOT_WIDTH: number;
-  ROBOT_HEIGHT: number;
   collidedObstacleId: number | null;
   runFrames: string[];
   jumpFrames: string[];
@@ -34,8 +33,6 @@ const Player: React.FC<PlayerProps> = ({
   duckFrame,
   deathFrame,
   robotY,
-  ROBOT_WIDTH,
-  ROBOT_HEIGHT,
   collidedObstacleId,
   runFrames,
   jumpFrames,
@@ -62,7 +59,7 @@ const Player: React.FC<PlayerProps> = ({
         transform: `translateX(-50%) scaleX(-1)`,
         bottom: `${56 + robotY}px`,
         width: `${ROBOT_WIDTH}px`,
-        height: `${isDucking ? ROBOT_HEIGHT * 0.7 : ROBOT_HEIGHT}px`,
+        height: isDucking ? `${ROBOT_HEIGHT * 0.7}px` : `${ROBOT_HEIGHT}px`,
         zIndex: 10,
         boxShadow: collidedObstacleId !== null && gameState !== 'gameOver' ? '0 0 32px 8px #ff0033, 0 0 0 8px #ff003388' : undefined,
         background: collidedObstacleId !== null && gameState !== 'gameOver' ? 'rgba(255,0,0,0.15)' : undefined,
@@ -71,6 +68,20 @@ const Player: React.FC<PlayerProps> = ({
         filter: shieldBlink ? 'drop-shadow(0 0 16px #38bdf8) drop-shadow(0 0 8px #0ff)' : undefined,
       }}
     >
+      {/* <div
+        style={{
+          position: 'absolute',
+          left: `${PLAYER_COLLIDER_X_OFFSET}px`,
+          top: 0,
+          width: `${PLAYER_COLLIDER_WIDTH}px`,
+          height: isDucking ? `${ROBOT_HEIGHT * 0.7}px` : `${ROBOT_HEIGHT}px`,
+          border: '2px dashed #00ffff',
+          borderRadius: '8px',
+          pointerEvents: 'none',
+          zIndex: 100,
+          boxSizing: 'border-box',
+        }}
+      /> */}
       {goldShine && (
         <div
           style={{

@@ -1,0 +1,4 @@
+export const ROBOT_WIDTH = 90;
+export const ROBOT_HEIGHT = 120;
+export const PLAYER_COLLIDER_WIDTH = ROBOT_WIDTH * 0.5; 
+export const PLAYER_COLLIDER_X_OFFSET = (ROBOT_WIDTH - PLAYER_COLLIDER_WIDTH) / 2;

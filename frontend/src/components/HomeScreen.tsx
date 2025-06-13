@@ -26,9 +26,13 @@ interface HomeScreenProps {
   onShop: () => void;
 }
 
+const WALK_FRAME_INTERVAL = 60; // ms
+
 const HomeScreen: React.FC<HomeScreenProps> = ({ user, onPlayNow, onSettings, onLeaderboard, onLogout, musicEnabled = true, musicVolume = 0.7, onShop }) => {
   const musicRef = useRef<any>(null);
   const [frame, setFrame] = useState(0);
+  const walkFrameTimerRef = useRef(0);
+  const lastFrameTimeRef = useRef(performance.now());
   const [liveHighScore, setLiveHighScore] = useState<number | null>(null);
   const [isPortrait, setIsPortrait] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -53,10 +57,19 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onPlayNow, onSettings, on
   }, [musicEnabled, musicVolume]);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setFrame(f => (f + 1) % walkFrames.length);
-    }, 60);
-    return () => clearInterval(interval);
+    function animate() {
+      const now = performance.now();
+      const delta = now - lastFrameTimeRef.current;
+      lastFrameTimeRef.current = now;
+      walkFrameTimerRef.current += delta;
+      if (walkFrameTimerRef.current > WALK_FRAME_INTERVAL) {
+        setFrame(f => (f + 1) % walkFrames.length);
+        walkFrameTimerRef.current = 0;
+      }
+      requestAnimationFrame(animate);
+    }
+    const id = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(id);
   }, []);
 
   useEffect(() => {

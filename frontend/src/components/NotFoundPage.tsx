@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 const walkFrames = Object.values(
   import.meta.glob('../assets/walk/*.png', { eager: true, as: 'url' })
 ).sort();
+const WALK_FRAME_INTERVAL = 60; // ms
 
 interface NotFoundPageProps {
   onBack: () => void;
@@ -10,12 +11,23 @@ interface NotFoundPageProps {
 
 const NotFoundPage: React.FC<NotFoundPageProps> = ({ onBack }) => {
   const [frame, setFrame] = useState(0);
+  const walkFrameTimerRef = useRef(0);
+  const lastFrameTimeRef = useRef(performance.now());
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setFrame(f => (f + 1) % walkFrames.length);
-    }, 60);
-    return () => clearInterval(interval);
+    function animate() {
+      const now = performance.now();
+      const delta = now - lastFrameTimeRef.current;
+      lastFrameTimeRef.current = now;
+      walkFrameTimerRef.current += delta;
+      if (walkFrameTimerRef.current > WALK_FRAME_INTERVAL) {
+        setFrame(f => (f + 1) % walkFrames.length);
+        walkFrameTimerRef.current = 0;
+      }
+      requestAnimationFrame(animate);
+    }
+    const id = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(id);
   }, []);
 
   const [isPortrait, setIsPortrait] = React.useState(false);
