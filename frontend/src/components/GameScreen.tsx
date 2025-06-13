@@ -1182,10 +1182,17 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
             )}
 
             {isMobile && !isPortrait && showInstructions && (
-    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-40 bg-black/70 px-4 py-2 rounded-xl border border-cyan-400 text-cyan-200 text-base font-semibold shadow-lg select-none pointer-events-none animate-fade-in whitespace-nowrap">
-        Touch left side to <span className="text-cyan-300">jump</span>, right side to <span className="text-cyan-300">duck</span>
-    </div>
-)}
+              <>
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-40 bg-black/70 px-4 py-2 rounded-xl border border-cyan-400 text-cyan-200 text-base font-semibold shadow-lg select-none pointer-events-none animate-fade-in whitespace-nowrap">
+                  Touch left side to <span className="text-cyan-300">jump</span>, right side to <span className="text-cyan-300">duck</span>
+                </div>
+                {/* Touch area containers, only on bottom 40% area */}
+                <div className="absolute left-0 bottom-0 w-full h-[40%] z-30 flex pointer-events-none">
+                  <div className="w-1/2 h-full bg-cyan-400/20 border-r-2 border-cyan-300/30 transition-opacity duration-300 pointer-events-none" style={{borderBottomLeftRadius: 16}} />
+                  <div className="w-1/2 h-full bg-purple-400/20 border-l-2 border-purple-300/30 transition-opacity duration-300 pointer-events-none" style={{borderBottomRightRadius: 16}} />
+                </div>
+              </>
+            )}
         </div>
     </div>
 );

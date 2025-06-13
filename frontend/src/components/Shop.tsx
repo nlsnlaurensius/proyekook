@@ -117,7 +117,10 @@ const Shop: React.FC<ShopProps> = ({ userCoin, onBuy, shopSuccess }) => {
                 const ownedQty = userPowerUps[pu.id] || 0;
                 return (
                   <div key={pu.id} className="flex items-center gap-4 bg-gray-900/70 rounded-lg p-4 border border-cyan-700/20">
-                    <img src={icon} alt={pu.name} className="w-12 h-12 object-contain drop-shadow-lg" style={{ background: 'rgba(0,255,255,0.08)', borderRadius: 12 }} />
+                    <div className="relative">
+                      <img src={icon} alt={pu.name} className="w-12 h-12 object-contain drop-shadow-lg" style={{ background: 'rgba(0,255,255,0.08)', borderRadius: 12 }} />
+                      <span className="absolute right-0 bottom-0 translate-x-1/4 translate-y-1/4 bg-cyan-600 text-white text-xs font-bold rounded-full px-2 py-0.5 border-2 border-white shadow-lg select-none" style={{ minWidth: 18, textAlign: 'center' }}>{ownedQty}</span>
+                    </div>
                     <div className="flex-1">
                       <div className="text-lg font-semibold text-white mb-1 flex items-center gap-2">{pu.name}</div>
                       <div className="text-gray-300 text-sm mb-2">{pu.description}</div>
@@ -171,7 +174,10 @@ const Shop: React.FC<ShopProps> = ({ userCoin, onBuy, shopSuccess }) => {
                     const ownedQty = userPowerUps[pu.id] || 0;
                     return (
                       <div key={pu.id} className="flex items-center gap-4 bg-gray-900/70 rounded-lg p-4 border border-cyan-700/20">
-                        <img src={icon} alt={pu.name} className="w-12 h-12 object-contain drop-shadow-lg" style={{ background: 'rgba(0,255,255,0.08)', borderRadius: 12 }} />
+                        <div className="relative">
+                          <img src={icon} alt={pu.name} className="w-12 h-12 object-contain drop-shadow-lg" style={{ background: 'rgba(0,255,255,0.08)', borderRadius: 12 }} />
+                          <span className="absolute right-0 bottom-0 translate-x-1/4 translate-y-1/4 bg-cyan-600 text-white text-xs font-bold rounded-full px-2 py-0.5 border-2 border-white shadow-lg select-none" style={{ minWidth: 18, textAlign: 'center' }}>{ownedQty}</span>
+                        </div>
                         <div className="flex-1">
                           <div className="text-lg font-semibold text-white mb-1 flex items-center gap-2">{pu.name}</div>
                           <div className="text-gray-300 text-sm mb-2">{pu.description}</div>
