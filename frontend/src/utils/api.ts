@@ -1,6 +1,4 @@
-// API utility for backend integration (JWT, user, leaderboard, game session, powerups)
-// Adjust BASE_URL if needed (e.g. http://localhost:8080)
-const BASE_URL = '/api';
+const BASE_URL = 'https://neon-runner-nelson.osc-fr1.scalingo.io/api';
 
 export async function register(username: string, email: string, password: string) {
   const res = await fetch(`${BASE_URL}/users/register`, {
@@ -22,7 +20,6 @@ export async function login(username: string, password: string) {
   if (!res.ok) {
     throw new Error(data.message || 'Login failed');
   }
-  // If backend returns ApiResponse with payload, convert to {token, user}
   if (data.payload) {
     const payload = data.payload;
     return {
