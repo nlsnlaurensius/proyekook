@@ -9,7 +9,7 @@ Neon Runner is a cyberpunk-themed endless runner game developed as a final proje
   <img src="https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=FFD62E" />
   <img src="https://img.shields.io/badge/Spring%20Boot-6DB33F?style=for-the-badge&logo=spring-boot&logoColor=white" />
   <img src="https://img.shields.io/badge/Java-ED8B00?style=for-the-badge&logo=java&logoColor=white" />
-  <img src="https://img.shields.io/badge/MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white" />
+  <img src="https://img.shields.io/badge/NeonDB-4479A1?style=for-the-badge&logo=NeonDB&logoColor=white" />
   <img src="https://img.shields.io/badge/Howler.js-FF8800?style=for-the-badge&logo=javascript&logoColor=white" />
   <img src="https://img.shields.io/badge/Lucide-000000?style=for-the-badge&logo=lucide&logoColor=white" />
   <img src="https://img.shields.io/badge/JWT-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white" />
@@ -58,7 +58,7 @@ Neon Runner is a cyberpunk-themed endless runner game developed as a final proje
 ## Technologies Used
 - **Frontend**: React, TypeScript, TailwindCSS, Vite
 - **Backend**: Spring Boot, Java, REST API
-- **Database**: MySQL
+- **Database**: NeonDB
 - **Audio**: Howler.js
 - **Others**: Lucide React Icons, JWT Auth
 
@@ -107,7 +107,7 @@ proyekook/
 4. Open in browser: `localhost:5173`
 
 ### Database
-- Import the `dump.sql` file from the `Kelengkapan/` folder into MySQL.
+- Import the `dump.sql` file from the `Kelengkapan/` folder into NeonDB.
 - Make sure the database configuration in `backend/src/main/resources/application.properties` is correct.
 
 ---
@@ -153,6 +153,6 @@ See the `Dokumentasi/` folder for game screenshots.
 
 ### Database Dump
 - File: `Kelengkapan/dump.sql`
-- Contains structure and initial data for the MySQL database.
+- Contains structure and initial data for the NeonDB database.
 
 ---

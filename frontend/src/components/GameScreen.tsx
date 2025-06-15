@@ -22,7 +22,6 @@ import PauseScreen from './GameScreen/PauseScreen';
 import GameOverScreen from './GameScreen/GameOverScreen';
 import { importAll } from './GameScreen/utils';
 import { playClick } from '../utils/clickSound';
-import { ROBOT_WIDTH, ROBOT_HEIGHT, PLAYER_COLLIDER_WIDTH, PLAYER_COLLIDER_X_OFFSET } from './GameScreen/playerColliderMeta';
 const runFrames = importAll(import.meta.glob('../assets/run/*.png', { eager: true, as: 'url' })).sort();
 const jumpFrames = importAll(import.meta.glob('../assets/jump/*.png', { eager: true, as: 'url' })).sort();
 const duckFrames = importAll(import.meta.glob('../assets/duck/*.png', { eager: true, as: 'url' })).sort();
@@ -32,14 +31,18 @@ const GROUND_Y = 0;
 const JUMP_HEIGHT = 100;
 const JUMP_DURATION = 500;
 const DUCK_DURATION = 500;
+const ROBOT_WIDTH = 90;
+const ROBOT_HEIGHT = 120;
 let OBSTACLE_MIN_GAP = 220;
 let OBSTACLE_MAX_GAP = 420;
 const OBSTACLE_SPEED_START = 6;
 const OBSTACLE_SPEED_MAX = 13;
 import { Obstacle as ObstacleType } from './GameScreen/types';
 const OBSTACLE_TYPES: ObstacleType['type'][] = ['low', 'high'];
-const COLLIDER_WIDTH = ROBOT_WIDTH * 0.5; 
+const COLLIDER_WIDTH = ROBOT_WIDTH * 0.8;
 const COLLIDER_X_OFFSET = (ROBOT_WIDTH - COLLIDER_WIDTH) / 2;
+const PLAYER_COLLIDER_WIDTH = ROBOT_WIDTH * 0.05;
+const PLAYER_COLLIDER_X_OFFSET = (ROBOT_WIDTH - PLAYER_COLLIDER_WIDTH) / 2;
 
 const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, soundEnabled, sfxVolume, musicVolume, onSoundSettingsChange, orientationState }) => {
   const [gameState, setGameState] = useState<GameState>(() => {
@@ -89,8 +92,10 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
   const [countdownResume, setCountdownResume] = useState<number | null>(null);
 
   useEffect(() => {
+    // Bisa tambahkan callback ke parent jika ingin
   }, [soundEnabled]);
   useEffect(() => {
+    // Bisa tambahkan callback ke parent jika ingin
   }, [sfxVolume]);
 
   useEffect(() => {
@@ -113,11 +118,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
   const coinIdRef = useRef(0);
   const lastCoinRef = useRef(0);
   const gameOverHandledRef = useRef(false);
-  const runFrameTimerRef = useRef(0);
-  const jumpFrameTimerRef = useRef(0);
-  const duckFrameTimerRef = useRef(0);
-  const deathFrameTimerRef = useRef(0);
-  const lastFrameTimeRef = useRef(performance.now());
 
   const createObstacle = useCallback(() => {
     const effectiveScore = Math.max(score, 1);
@@ -355,44 +355,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
 
   const gameLoop = useCallback(() => {
     if (gameState !== 'playing') return;
-    // Delta time
-    const nowLoop = performance.now();
-    const delta = nowLoop - lastFrameTimeRef.current;
-    lastFrameTimeRef.current = nowLoop;
-
-    // Update animasi frame RUN
-    if (!isJumping && !isDucking) {
-      runFrameTimerRef.current += delta;
-      if (runFrameTimerRef.current > 80) {
-        setRunFrame(f => (f + 1) % runFrames.length);
-        runFrameTimerRef.current = 0;
-      }
-    }
-    // Update animasi frame JUMP
-    if (isJumping) {
-      jumpFrameTimerRef.current += delta;
-      if (jumpFrameTimerRef.current > 60) {
-        setJumpFrame(f => {
-          if (f + 1 >= jumpFrames.length) return jumpFrames.length - 1;
-          return f + 1;
-        });
-        jumpFrameTimerRef.current = 0;
-      }
-    } else {
-      setJumpFrame(0);
-      jumpFrameTimerRef.current = 0;
-    }
-    // Update animasi frame DUCK
-    if (isDucking) {
-      duckFrameTimerRef.current += delta;
-      if (duckFrameTimerRef.current > 80) {
-        setDuckFrame(f => (f + 1) % duckFrames.length);
-        duckFrameTimerRef.current = 0;
-      }
-    } else {
-      setDuckFrame(0);
-      duckFrameTimerRef.current = 0;
-    }
     setObstacles(prev => {
       if (shieldActive) {
         return prev.map(obstacle => ({
@@ -488,8 +450,8 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
       }
       return updated;
     });
-    const nowCoin = Date.now();
-    if (nowCoin - lastCoinRef.current > 1200 + Math.random() * 2000) {
+    const now = Date.now();
+    if (now - lastCoinRef.current > 1200 + Math.random() * 2000) {
       createCoin();
     }
     gameLoopRef.current = requestAnimationFrame(gameLoop);
@@ -614,7 +576,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
   useEffect(() => {
     if (gameState === 'gameOver') {
       setDeathFrame(0);
-      deathFrameTimerRef.current = 0;
       const interval = setInterval(() => {
         setDeathFrame(f => {
           if (f + 1 >= deathFrames.length) return deathFrames.length - 1;
@@ -624,7 +585,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
       return () => clearInterval(interval);
     } else {
       setDeathFrame(0);
-      deathFrameTimerRef.current = 0;
     }
   }, [gameState]);
 
@@ -905,14 +865,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
     };
   }, []);
 
-  useEffect(() => {
-    const allFrames = [...runFrames, ...jumpFrames, ...duckFrames, ...deathFrames];
-    allFrames.forEach(src => {
-      const img = new window.Image();
-      img.src = src;
-    });
-  }, []);
-
   if (isMobile && isPortrait) {
     return (
       <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 via-purple-900 to-black">
@@ -1086,6 +1038,8 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
                         duckFrame={duckFrame}
                         deathFrame={deathFrame}
                         robotY={robotY}
+                        ROBOT_WIDTH={90}
+                        ROBOT_HEIGHT={120}
                         collidedObstacleId={collidedObstacleId}
                         runFrames={runFrames}
                         jumpFrames={jumpFrames}
@@ -1252,6 +1206,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ user, onGameOver, onBack, sound
         </div>
     </div>
 );
+
 };
 
 export default GameScreen;
