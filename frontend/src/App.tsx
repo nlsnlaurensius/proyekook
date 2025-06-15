@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
+import { Routes, Route, useNavigate, Navigate, useLocation } from 'react-router-dom';
 import HomeScreen from './components/HomeScreen';
 import LoginScreen from './components/LoginScreen';
 import GameScreen from './components/GameScreen';
@@ -35,6 +35,7 @@ function App() {
   const [lastOrientation, setLastOrientation] = useState<{ isMobile: boolean; isPortrait: boolean } | null>(null);
 
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const savedUser = localStorage.getItem('neonRunnerUser');
@@ -194,10 +195,12 @@ function App() {
         }
       } catch {}
     };
-    fetchUserCoin();
-    interval = setInterval(fetchUserCoin, 2000);
-    return () => clearInterval(interval);
-  }, [user?.username]);
+    if (location.pathname === '/shop') {
+      fetchUserCoin();
+      interval = setInterval(fetchUserCoin, 2000);
+    }
+    return () => interval && clearInterval(interval);
+  }, [user?.username, location.pathname]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-black">

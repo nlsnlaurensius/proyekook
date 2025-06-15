@@ -30,6 +30,7 @@ const Shop: React.FC<ShopProps> = ({ userCoin, onBuy, shopSuccess }) => {
   const [userPowerUps, setUserPowerUps] = useState<Record<number, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [buyingId, setBuyingId] = useState<number | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -71,11 +72,13 @@ const Shop: React.FC<ShopProps> = ({ userCoin, onBuy, shopSuccess }) => {
   }, []);
 
   const handleBuy = (pu: PowerUp) => {
+    setBuyingId(pu.id);
     onBuy(pu, (powerUpId: number) => {
       setUserPowerUps((prev) => ({
         ...prev,
         [powerUpId]: (prev[powerUpId] || 0) + 1,
       }));
+      setBuyingId(null);
     });
   };
 
@@ -126,8 +129,12 @@ const Shop: React.FC<ShopProps> = ({ userCoin, onBuy, shopSuccess }) => {
                       <div className="text-gray-300 text-sm mb-2">{pu.description}</div>
                       <div className="text-yellow-400 font-bold">Price: {pu.price} <span className="text-xs font-normal text-gray-400">coins</span></div>
                     </div>
-                    <button className={`px-3 py-2 rounded-lg font-bold transition-all ${userCoin >= pu.price ? 'bg-cyan-500 hover:bg-cyan-400 text-white' : 'bg-gray-700 text-gray-400 cursor-not-allowed'}`} disabled={userCoin < pu.price} onClick={() => handleBuy(pu)}>
-                      Buy
+                    <button
+                      className={`px-3 py-2 rounded-lg font-bold transition-all ${userCoin >= pu.price ? 'bg-cyan-500 hover:bg-cyan-400 text-white' : 'bg-gray-700 text-gray-400 cursor-not-allowed'}`}
+                      disabled={userCoin < pu.price || buyingId === pu.id}
+                      onClick={() => handleBuy(pu)}
+                    >
+                      {buyingId === pu.id ? 'Buying...' : 'Buy'}
                     </button>
                   </div>
                 );
@@ -183,8 +190,12 @@ const Shop: React.FC<ShopProps> = ({ userCoin, onBuy, shopSuccess }) => {
                           <div className="text-gray-300 text-sm mb-2">{pu.description}</div>
                           <div className="text-yellow-400 font-bold">Price: {pu.price} <span className="text-xs font-normal text-gray-400">coins</span></div>
                         </div>
-                        <button className={`px-3 py-2 rounded-lg font-bold transition-all ${userCoin >= pu.price ? 'bg-cyan-500 hover:bg-cyan-400 text-white' : 'bg-gray-700 text-gray-400 cursor-not-allowed'}`} disabled={userCoin < pu.price} onClick={() => handleBuy(pu)}>
-                          Buy
+                        <button
+                          className={`px-3 py-2 rounded-lg font-bold transition-all ${userCoin >= pu.price ? 'bg-cyan-500 hover:bg-cyan-400 text-white' : 'bg-gray-700 text-gray-400 cursor-not-allowed'}`}
+                          disabled={userCoin < pu.price || buyingId === pu.id}
+                          onClick={() => handleBuy(pu)}
+                        >
+                          {buyingId === pu.id ? 'Buying...' : 'Buy'}
                         </button>
                       </div>
                     );
@@ -246,8 +257,12 @@ const Shop: React.FC<ShopProps> = ({ userCoin, onBuy, shopSuccess }) => {
                       <div className="text-gray-300 text-sm mb-2">{pu.description}</div>
                       <div className="text-yellow-400 font-bold">Price: {pu.price} <span className="text-xs font-normal text-gray-400">coins</span></div>
                     </div>
-                    <button className={`px-4 py-2 rounded-lg font-bold transition-all ${userCoin >= pu.price ? 'bg-cyan-500 hover:bg-cyan-400 text-white' : 'bg-gray-700 text-gray-400 cursor-not-allowed'}`} disabled={userCoin < pu.price} onClick={() => handleBuy(pu)}>
-                      Buy
+                    <button
+                      className={`px-4 py-2 rounded-lg font-bold transition-all ${userCoin >= pu.price ? 'bg-cyan-500 hover:bg-cyan-400 text-white' : 'bg-gray-700 text-gray-400 cursor-not-allowed'}`}
+                      disabled={userCoin < pu.price || buyingId === pu.id}
+                      onClick={() => handleBuy(pu)}
+                    >
+                      {buyingId === pu.id ? 'Buying...' : 'Buy'}
                     </button>
                   </div>
                 );

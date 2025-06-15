@@ -82,7 +82,7 @@ export async function getPowerUps(token?: string) {
 }
 
 export async function buyPowerUp(userId: number, powerUpId: number, token?: string) {
-  const res = await fetch(`/api/powerups/buy/${userId}/${powerUpId}`, {
+  const res = await fetch(`${BASE_URL}/powerups/buy/${userId}/${powerUpId}`, {
     method: 'POST',
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
@@ -100,7 +100,7 @@ export async function getUserOwnedPowerUps(userId: number, token?: string) {
 }
 
 export async function usePowerUp(userId: number, powerUpId: number, token?: string) {
-  const res = await fetch(`/api/powerups/use/${userId}/${powerUpId}`, {
+  const res = await fetch(`${BASE_URL}/powerups/use/${userId}/${powerUpId}`, {
     method: 'POST',
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
